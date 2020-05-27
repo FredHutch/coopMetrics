@@ -1,0 +1,47 @@
+### Brief look at github api with `gh`
+
+## install gh
+install.packages("gh")
+library(gh)
+# install usethis and edit r environ to include
+# gh pat
+library(usethis)
+usethis::edit_r_environ()
+# restart R and
+# make sure it worked
+Sys.getenv("GITHUB_PAT")
+# pull my repos
+my_repos <- gh("GET /users/:username/repos", username = "lakikowolfe")
+# unlist
+my_repos <- vapply(my_repos, "[[", "", "name")
+
+# try and pull fred hutch repos
+fh_repos <- gh("GET /users/:username/repos", username = "FredHutch", page = 2)
+fh_repos <- vapply(fh_repos, "[[", "", "name")
+
+# pull stats about FH/coop repo contributors
+fh_coop <- gh("GET /repos/:owner/:repo/stats/contributors",
+              owner = "FredHutch",
+              repo = "coop")
+# pull stats about FH/coop commits
+fh_coop_commits <- gh("GET /repos/:owner/:repo/stats/commit_activity",
+                      owner = "FredHutch",
+                      repo = "coop")
+
+## Brief look at google analytics with googleAnalyticsR
+# install
+install.packages("googleAnalyticsR")
+library(googleAnalyticsR)
+# set up authorization
+ga_auth()
+# look at accounts
+my_accounts <- ga_account_list()
+# pull out view data for the coop blog
+coop_acct <- my_accounts[grepl("Coop", my_accounts$accountName),]
+coop_viewid <- coop_acct$viewId
+# query for some basic data
+web_data <- google_analytics(coop_viewid,
+                               date_range = c("2020-04-01", "2020-04-30"),
+                               metrics = c("sessions","pageviews",
+                                           "entrances","bounces"),
+                               anti_sample = TRUE)
