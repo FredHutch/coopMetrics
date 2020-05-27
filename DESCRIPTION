@@ -1,0 +1,10 @@
+Package: coopMetrics
+Type: Package
+Title: What the Package Does (Title Case)
+Version: 0.1.0
+Author: Lauren Wolfe
+Maintainer: Lauren Wolfe <lwolfe@fredhutch.org>
+Description: A package for pulling and aggregating data from GitHub and Google Analytics for reporting on gh-pages sites
+License: What license is it under?
+Encoding: UTF-8
+LazyData: true
