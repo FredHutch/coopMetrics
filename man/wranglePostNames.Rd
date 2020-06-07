@@ -4,14 +4,7 @@
 \alias{wranglePostNames}
 \title{Pull out certain variables from post names that follow the convention of yyyy-mm-dd-title.md}
 \usage{
-wranglePostNames(
-  postNames,
-  date = TRUE,
-  name = TRUE,
-  day = TRUE,
-  month = TRUE,
-  year = TRUE
-)
+wranglePostNames(postNames, date = TRUE, name = TRUE)
 }
 \arguments{
 \item{postNames}{a vector of post names that follow the convention yyyy-mm-dd-title.md}
@@ -19,12 +12,6 @@ wranglePostNames(
 \item{date}{output date? T/F}
 
 \item{name}{output name? T/F}
-
-\item{day}{output day? T/F}
-
-\item{month}{output month? T/F}
-
-\item{year}{output year? T/F}
 }
 \value{
 a dataframe of variables

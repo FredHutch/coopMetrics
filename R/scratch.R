@@ -1,12 +1,12 @@
 ### Brief look at github api with `gh`
 
 ## install gh
-install.packages("gh")
+#install.packages("gh")
 library(gh)
 # install usethis and edit r environ to include
 # gh pat
 library(usethis)
-usethis::edit_r_environ()
+#usethis::edit_r_environ()
 # restart R and
 # make sure it worked
 Sys.getenv("GITHUB_PAT")

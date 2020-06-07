@@ -2,7 +2,9 @@
 
 export(getGithubStatistics)
 export(getGoogleAnalytics)
+export(getPostNames)
 export(getReportData)
+export(postsThisMonth)
 export(wranglePostNames)
 import(gh)
 import(googleAnalyticsR)
