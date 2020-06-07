@@ -36,20 +36,6 @@ getGoogleAnalytics <- function(accountName,
   return(web_data)
 }
 
-## main function to pull data from the GitHub Repository Statistics API
-#' Pull GitHub Repository Statistics data from an account.
-#'
-#' Uses the `gh` package to pull specified data from the GitHubRepository Statistics API
-#'
-#' @param
-#'
-#' @return a dataframe of variables
-#'
-#' @export
-#' @import gh
-getGithubStatistics <- function{}
-
-
 ## Function that get's the number of new posts
 #' Compares posts from this month to last month using the Google Analytics API
 #'
@@ -62,9 +48,6 @@ getGithubStatistics <- function{}
 #' @export
 #' @import googleAnalyticsR
 
-
-
-
 getReportData <- function() {
   accountName <- "Coop"
   # pull in data
@@ -75,7 +58,7 @@ getReportData <- function() {
   pageViews <- getGoogleAnalytics(accountName = accountName,
                                   metrics = c("pageviews"),
                                   dimensions = c("pagePath"))
-  pageViewsPosts <- .viewOnlyPosts(pageViews,
+  pageViewsPosts <- .gaViewOnlyPosts(pageViews,
                                    subPagesToRemove = c("^/coop/$", "/calendar/",
                                                         "/contributors/", "/posts/",
                                                         "/tags/", "/about/",
@@ -93,11 +76,7 @@ getReportData <- function() {
   }
 }
 
-.viewOnlyPosts <- function(pageViews, subPagesToRemove) {
+.gaViewOnlyPosts <- function(pageViews, subPagesToRemove) {
   pattern <- paste(subPagesToRemove, collapse = "|")
   pageViews[!grepl(pattern, pageViews$pagePath, ),]
 }
-
-
-
-

@@ -27,6 +27,18 @@ fh_coop <- gh("GET /repos/:owner/:repo/stats/contributors",
 fh_coop_commits <- gh("GET /repos/:owner/:repo/stats/commit_activity",
                       owner = "FredHutch",
                       repo = "coop")
+posts <- gh("GET /repos/:owner/:repo/contents/:path",
+      owner = "FredHutch",
+      repo = "coop",
+      path = "_posts")
+
+# loop over posts to pull out titles
+lapply(seq(1:length(posts)), function(i) {
+  postName <- posts[[i]]$name
+  return(postName)
+})
+
+
 
 ## Brief look at google analytics with googleAnalyticsR
 # install
