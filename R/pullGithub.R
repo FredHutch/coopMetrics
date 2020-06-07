@@ -13,6 +13,10 @@ getGithubStatistics <- function() {
 
 }
 
+#################################################
+## POSTS ----------------------------------------
+#################################################
+
 #' Get the names of posts from your github pages _posts repo
 #'
 #' Uses the `gh` package to pull the names of posts from the `_posts` directory
@@ -52,16 +56,7 @@ postsThisMonth <- function(postNames,
                            month = NULL,
                            year = NULL) {
   ## Pull out month and year if not specified ---
-  if (is.null(month)) {
-    message("No month specified, using current month")
-    month <- month(Sys.Date())
-  }
-
-  if (is.null(year)) {
-    message("No month specified, using current year")
-    year <- year(Sys.Date())
-  }
-  monthYear <- paste0(month, "_", year)
+  monthYear <- .checkMonthYear(month, year)
 
   ## get dates from postNames -------------------
   postNamesWrangled <- wranglePostNames(postNames)
@@ -75,7 +70,49 @@ postsThisMonth <- function(postNames,
 }
 
 #################################################
+## COMMITS --------------------------------------
+#################################################
+
+getCommits <- function(owner = "FredHutch",
+                       repo = "coop") {
+  commitsObj <- gh("GET /repos/:owner/:repo/stats/commit_activity",
+                   owner = "FredHutch",
+                   repo = "coop")
+}
+
+getCommitWeeks <- function(commitsObj) {
+  weeksList <- lapply(seq(1:length(commitsObj)), function(i) {
+    week <- commitsObj[[i]]$week
+    return(week)
+  })
+  weeksVec <- unlist(weeksList)
+  return(weeksVec)
+}
+
+subCommitsObjThisMonth <- function(weeksVec,
+                                   commitsObj,
+                                   month = NULL,
+                                   year = NULL) {
+  # check month and year, return month_year
+  monthYear <- .checkMonthYear(month, year)
+  # get dates from weeksVec
+  weeksDate <- as_datetime(weeksVec)
+  # pull month and year, create monthsYear
+  months <- month(weeksDate)
+  years <- year(weeksDate)
+  monthsYears <- paste0(months, "_", years)
+  # create logical vector where TRUE = commit weeks to keep
+  toKeep <- monthsYears == monthYear
+  # subset commit object
+  resObj <- commitsObj[toKeep]
+
+  return(resObj)
+}
+
+
+#################################################
 ## HELPER FUNCTIONS -----------------------------
+#################################################
 
 # Quick search for a PAT that has the term 'github' in it
 .checkGithubPat <- function() {
@@ -90,4 +127,25 @@ postsThisMonth <- function(postNames,
          messageTrue,
          messageFalse)
   return(patExists)
+}
+
+.ifMonthNull <- function() {
+  message("No month specified, using current month")
+  month <- month(Sys.Date())
+  return(month)
+}
+
+.ifYearNull <- function() {
+  message("No month specified, using current year")
+  year <- year(Sys.Date())
+}
+
+.checkMonthYear <- function(month = NULL, year = NULL) {
+  if (is.null(month)) {
+    month <- .ifMonthNull()
+  }
+  if (is.null(year)) {
+    year <- .ifYearNull()
+  }
+  return(paste0(month, "_", year))
 }
