@@ -9,8 +9,18 @@
 #'
 #' @export
 #' @import gh
-getGithubStatistics <- function() {
-
+getGithubStatistics <- function(month = NULL, year = NULL) {
+  # get posts
+  postNames <- getPostNames()
+  posts <- postsThisMonth(postNames)
+  # calculate number of posts this month
+  postsNum <- length(posts$date)
+  # get commit info from last year
+  commitsObj <- getCommits()
+  # subset commits
+  commitsObjThisMonth <- subCommitsObjThisMonth(commitsObj)
+  # calculate number of commits this month
+  commitNum <- calcTotalCommits(commitsObjThisMonth)
 }
 
 #################################################
@@ -52,6 +62,7 @@ getPostNames <- function(owner = "FredHutch",
 #' @return a df of postNames from this months with other variables
 #'
 #' @export
+#' @import lubridate
 postsThisMonth <- function(postNames,
                            month = NULL,
                            year = NULL) {
@@ -109,6 +120,48 @@ subCommitsObjThisMonth <- function(weeksVec,
   return(resObj)
 }
 
+calcTotalCommits <- function(commitsObj) {
+  totals <- lapply(seq(1:length(commitsObj)), function(i){
+    totalNum <- commitsObj[[i]]$total
+    return(totalNum)
+  })
+  totals <- unlist(totals)
+  return(sum(totals))
+}
+#################################################
+## CONTRIBUTORS ---------------------------------
+#################################################
+
+getContributors <- function(owner = "FredHutch",
+                            repo = "coop") {
+  contributorsObj <- gh("GET /repos/:owner/:repo/contributors",
+                        owner = "FredHutch",
+                        repo = "coop")
+  logins <- getLogins(contributorsObj)
+  return(logins)
+}
+
+getLogins <- function(contributorsObj,
+                      toRemove = c("mmistakes", "coliff")) {
+  loginsList <- lapply(seq(1:length(contributorsObj)), function(i) {
+    logins <- contributorsObj[[i]]$login
+    return(logins)
+  })
+  logins <- unlist(loginsList)
+
+  if (!is.null(toRemove)) {
+    logins <- setdiff(logins, toRemove)
+  }
+  return(logins)
+}
+
+logLogins <- function(logins,
+                      logFile = "loginLog.csv") {
+  logFile <- here::here("loginLog", logFile)
+  if (file.exists(logFile)) {
+    read.csv(logFile,)
+  }
+}
 
 #################################################
 ## HELPER FUNCTIONS -----------------------------
