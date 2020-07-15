@@ -1,82 +1,64 @@
-## main function to pull data from the google analytics API
-#' Pull Google Analytics data from an account.
-#'
-#' Uses the `googleAnalyticsR` package to pull specified data from the Google Analytics API
-#'
-#' @param accountName specify the account you'd like to get data for, vector length of 1
-#' @param dateRange specify the dates you'd like to pull data for, vector length 2. Defaults to the last 30 days.
-#' @param metrics specify the metrics you wish to pull. Defaults:
-#' @param auth specify if you need to authorize your account.
-#'
-#' @return a dataframe of variables
-#'
-#' @export
-#' @import googleAnalyticsR
-getGoogleAnalytics <- function(accountName,
-                               dateRange = c((Sys.Date()- 30), Sys.Date()),
-                               metrics = c("users","newUsers",
-                                           "sessionsPerUser","pageviews"),
-                               dimensions = NULL,
-                               auth = FALSE){
-  # run auth if true
-  if (auth) {
-    ga_auth()
-  }
-  # run checks
-  .googleAnalyticsChecks(auth, accountName, dateRange, metrics)
-  # get account
+getAccountInfo <- function(webPropertyName,
+                           onlyViewId = TRUE) {
   accounts <- ga_account_list()
-  accounts_subset <- accounts[grepl(accountName, accounts$accountName),]
-  # pull data
-  web_data <- google_analytics(accounts_subset$viewId,
+  accounts_subset <- accounts[grepl(accountName, accounts$webPropertyName),]
+
+  if (length(accounts_subset$accountId) >1) {
+    stop("webPropertyName had more than one hit")
+  }
+  if (length(accounts_subset$accountId) == 0) {
+    stop("webPropertuyName had no hits")
+  }
+  ifelse(onlyViewId,
+         return(accounts_subset$viewId),
+         return(accounts_subset))
+
+}
+
+pullWebData <- function(viewId,
+                        dateRange = c((Sys.Date()- 30), Sys.Date()),
+                        metrics,
+                        dimensions) {
+  webData <- google_analytics(accounts_subset$viewId,
                                date_range = dateRange,
                                metrics = metrics,
                                dimensions = dimensions,
                                anti_sample = TRUE)
-  return(web_data)
+
+  rownames(webData) <- paste0(dateRange, collapse = " - ")
+  return(webData)
 }
 
-## Function that get's the number of new posts
-#' Compares posts from this month to last month using the Google Analytics API
-#'
-#' Uses the `googleAnalyticsR` package to pull specified data from the GitHubRepository Statistics API
-#'
-#' @param
-#'
-#' @return a dataframe of variables
-#'
-#' @export
-#' @import googleAnalyticsR
+getPageViewsByPath <- function(onlyPosts = TRUE,
+                               ordered = TRUE,
+                               topThree = TRUE){
+  pageViews <- pullWebData(viewId = viewId,
+                           metrics = c("pageviews"),
+                           dimensions = c("pagePath"))
+  # subset
+  if(onlyPosts){
+    pageViews <- .gaViewOnlyPosts(pageViews = pageViews,
+                                 subPagesToRemove = c("^/coop/$", "/calendar/",
+                                                      "/contributors/", "/posts/",
+                                                      "/tags/", "/about/",
+                                                      "/categories/"),
+                                 ordered = ordered)
+  }
 
-getReportData <- function() {
-  accountName <- "Coop"
-  # pull in data
-  usersRegion <- getGoogleAnalytics(accountName = accountName,
-                                    metrics = c("users", "newUsers",
-                                                "sessionsPerUser"),
-                                    dimensions = "region")
-  pageViews <- getGoogleAnalytics(accountName = accountName,
-                                  metrics = c("pageviews"),
-                                  dimensions = c("pagePath"))
-  pageViewsPosts <- .gaViewOnlyPosts(pageViews,
-                                   subPagesToRemove = c("^/coop/$", "/calendar/",
-                                                        "/contributors/", "/posts/",
-                                                        "/tags/", "/about/",
-                                                        "/categories/"))
+  if (topThree) {
+    pageViews <- pageViews[1:3,]
+  }
+  return(pageViews)
 }
 
 ## helper functions -------------
-.googleAnalyticsChecks <- function(auth, accountName, dateRange, metrics) {
-  if (length(accountName) > 1) {
-    stop("only handles one accountName at a time")
-  }
-
-  if (length(dateRange) != 2) {
-    stop("must specify date range")
-  }
-}
-
-.gaViewOnlyPosts <- function(pageViews, subPagesToRemove) {
+.gaViewOnlyPosts <- function(pageViews, subPagesToRemove, ordered = TRUE) {
   pattern <- paste(subPagesToRemove, collapse = "|")
-  pageViews[!grepl(pattern, pageViews$pagePath, ),]
+  pageViews <- pageViews[!grepl(pattern, pageViews$pagePath, ),]
+  # Order by most viewed to least
+  if (ordered) {
+    pageViews <- pageViews[order(pageViews$pageviews, decreasing = TRUE),]
+  }
+
+  return(pageViews)
 }
