@@ -61,16 +61,22 @@ web_data <- google_analytics(coop_viewid,
 
 
 
-
+######################
 #### USING COOPMETRICS
-coopBlog <- "Coop blog"
+######################
+### SET VARIABLES
+account <- "Coop blog"
 month <- 05
 year <- 2020
 
-viewId <- getAccountInfo(coopBlog,
-                         onlyViewId = TRUE)
+### Google Analytics
 
 googleAnalyticsMetrics <- c("users", "newUsers", "sessions", "pageviews")
+
+
+viewId <- getAccountInfo(account,
+                         onlyViewId = TRUE)
+
 
 dateRangeDf <- monthYear2DateRange(month = month,
                                    year = year)
@@ -87,4 +93,40 @@ topPages <- getPageViewsByPath(viewId = viewId,
                                topThree = TRUE)
 
 webData$topPages <- paste0(topPages$pagePath, collapse = "; ")
+googleAnalyticsData <- webData
+### Github
 
+# get post info
+postNames <- getFileNames(owner = "FredHutch",
+                          repo = "coop",
+                          path = "_posts")
+posts <- postsThisMonth(postNames,
+                        month = month,
+                        year = year)
+postsNum <- length(posts$date)
+# get commit info
+commitObj <- getCommits(owner = "FredHutch",
+                        repo = "coop")
+commitObjThisMonth <- subCommitObjThisMonth(commitObj,
+                                            month = month,
+                                            year = year)
+commitNum <- calcTotalCommits(commitObjThisMonth)
+# get contributor info
+contributorDateDf <- contributorsAndDates(owner = "FredHutch",
+                                         repo = "coop",
+                                         path = "_contributors",
+                                         ordered = TRUE)
+numTotalContributors <- length(contributorDateDf$path)
+dateRange <- monthYear2DateRange(month = month, year = year)
+newContributorDf <- newContributorPaths(contributorDateDf = contributorDateDf,
+                                        first = dateRange$first,
+                                        last = dateRange$last)
+numNewContributors <- length(newContributorDf$path)
+newContributorNames <- path2Contributor(newContributorDf$path)
+
+githubData <- data.frame(numberPosts = postsNum,
+                         numberCommits = commitNum,
+                         numTotalContributors = numTotalContributors,
+                         numNewContributors = numNewContributors,
+                         newContributorNames = newContributorNames,
+                         stringsAsFactors = FALSE)
