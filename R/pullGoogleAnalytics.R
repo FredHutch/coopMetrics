@@ -1,7 +1,7 @@
 getAccountInfo <- function(webPropertyName,
                            onlyViewId = TRUE) {
   accounts <- ga_account_list()
-  accounts_subset <- accounts[grepl(accountName, accounts$webPropertyName),]
+  accounts_subset <- accounts[grepl(webPropertyName, accounts$webPropertyName),]
 
   if (length(accounts_subset$accountId) >1) {
     stop("webPropertyName had more than one hit")
@@ -15,15 +15,33 @@ getAccountInfo <- function(webPropertyName,
 
 }
 
+monthYear2DateRange <- function(month,
+                                year) {
+  # hard code beginning of month as the first
+  first <- ymd(paste(year, month, "01", sep = "-"))
+  # check if it's current month/year
+  thisMonth <- month(Sys.Date())
+  thisYear <- year(Sys.Date())
+  if (month == thisMonth & year == thisYear) {
+    last <- Sys.Date()
+  } else {
+    # get end of the month
+    last <- ceiling_date(first, 'month') - 1
+  }
+
+  return(last)
+
+}
+
 pullWebData <- function(viewId,
-                        dateRange = c((Sys.Date()- 30), Sys.Date()),
+                        dateRange,
                         metrics,
                         dimensions) {
-  webData <- google_analytics(accounts_subset$viewId,
-                               date_range = dateRange,
-                               metrics = metrics,
-                               dimensions = dimensions,
-                               anti_sample = TRUE)
+  webData <- google_analytics(viewId,
+                              date_range = dateRange,
+                              metrics = metrics,
+                              dimensions = dimensions,
+                              anti_sample = TRUE)
 
   rownames(webData) <- paste0(dateRange, collapse = " - ")
   return(webData)
