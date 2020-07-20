@@ -43,6 +43,7 @@ lapply(seq(1:length(posts)), function(i) {
 ## Brief look at google analytics with googleAnalyticsR
 # install
 install.packages("googleAnalyticsR")
+library(googleAuthR)
 library(googleAnalyticsR)
 # set up authorization
 ga_auth()
@@ -57,3 +58,33 @@ web_data <- google_analytics(coop_viewid,
                                metrics = c("sessions","pageviews",
                                            "entrances","bounces"),
                                anti_sample = TRUE)
+
+
+
+
+#### USING COOPMETRICS
+coopBlog <- "Coop blog"
+month <- 05
+year <- 2020
+
+viewId <- getAccountInfo(coopBlog,
+                         onlyViewId = TRUE)
+
+googleAnalyticsMetrics <- c("users", "newUsers", "sessions", "pageviews")
+
+dateRangeDf <- monthYear2DateRange(month = month,
+                                   year = year)
+
+webData <- pullWebData(viewId = viewId,
+                       dateRange = dateRangeDf$range,
+                       metrics = googleAnalyticsMetrics,
+                       dimensions = NULL)
+
+topPages <- getPageViewsByPath(viewId = viewId,
+                               dateRange = dateRangeDf$range,
+                               onlyPosts = TRUE,
+                               ordered = TRUE,
+                               topThree = TRUE)
+
+webData$topPages <- paste0(topPages$pagePath, collapse = "; ")
+
