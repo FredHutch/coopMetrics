@@ -1,0 +1,24 @@
+---
+title: "Monthly report"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(gh)
+# source script files
+files.sources <- list.files("R/")
+sapply(paste0("R/", files.sources), source)
+```
+
+## New posts and contributor statistics
+
+```{r}
+pullGitHub()
+```
+
+## Pageviews and web analytics
+
+```{r}
+pullGoogleAnalytics()
+```
