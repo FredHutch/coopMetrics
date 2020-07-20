@@ -29,7 +29,11 @@ monthYear2DateRange <- function(month,
     last <- ceiling_date(first, 'month') - 1
   }
 
-  return(last)
+  res <- list(first = first,
+                    last = last,
+                    range = c(first, last))
+
+  return(res)
 
 }
 
@@ -42,15 +46,16 @@ pullWebData <- function(viewId,
                               metrics = metrics,
                               dimensions = dimensions,
                               anti_sample = TRUE)
-
-  rownames(webData) <- paste0(dateRange, collapse = " - ")
   return(webData)
 }
 
-getPageViewsByPath <- function(onlyPosts = TRUE,
+getPageViewsByPath <- function(viewId,
+                               dateRange,
+                               onlyPosts = TRUE,
                                ordered = TRUE,
                                topThree = TRUE){
   pageViews <- pullWebData(viewId = viewId,
+                           dateRange = dateRange,
                            metrics = c("pageviews"),
                            dimensions = c("pagePath"))
   # subset
