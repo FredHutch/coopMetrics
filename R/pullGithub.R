@@ -11,16 +11,18 @@
 #' @import gh
 getGithubStatistics <- function(month = NULL, year = NULL) {
   # get posts
-  postNames <- getPostNames()
-  posts <- postsThisMonth(postNames)
+  postNames <- getFileNames()
+  posts <- postsThisMonth(postNames, month = month, year = year)
   # calculate number of posts this month
   postsNum <- length(posts$date)
   # get commit info from last year
-  commitsObj <- getCommits()
+  commitObj <- getCommits()
   # subset commits
-  commitsObjThisMonth <- subCommitsObjThisMonth(commitsObj)
+  commitObjThisMonth <- subCommitObjThisMonth(commitObj,
+                                                month = month,
+                                                year = year)
   # calculate number of commits this month
-  commitNum <- calcTotalCommits(commitsObjThisMonth)
+  commitNum <- calcTotalCommits(commitObjThisMonth)
 }
 
 #################################################
@@ -38,17 +40,18 @@ getGithubStatistics <- function(month = NULL, year = NULL) {
 #'
 #' @export
 #' @import gh
-getPostNames <- function(owner = "FredHutch",
-                         repo = "coop") {
-  postsList <- gh("GET /repos/:owner/:repo/contents/:path",
+getFileNames <- function(owner = "FredHutch",
+                         repo = "coop",
+                         path = "_posts") {
+  fileList <- gh("GET /repos/:owner/:repo/contents/:path",
               owner = owner,
               repo = repo,
-              path = "_posts")
+              path = path)
 
-  postNames  <- lapply(seq(1:length(postsList)), function(i) {
-    postName <- posts[[i]]$name
-    return(postName)})
-  return(unlist(postNames))
+  fileNames  <- lapply(seq(1:length(fileList)), function(i) {
+    fileName <- fileList[[i]]$name
+    return(fileName)})
+  return(unlist(fileNames))
 }
 
 #' Get the postNames of post from the specified month and year (if left unspecified the current month/year is assumed)
@@ -86,81 +89,111 @@ postsThisMonth <- function(postNames,
 
 getCommits <- function(owner = "FredHutch",
                        repo = "coop") {
-  commitsObj <- gh("GET /repos/:owner/:repo/stats/commit_activity",
+  commitObj <- gh("GET /repos/:owner/:repo/stats/commit_activity",
                    owner = "FredHutch",
                    repo = "coop")
 }
 
-getCommitWeeks <- function(commitsObj) {
-  weeksList <- lapply(seq(1:length(commitsObj)), function(i) {
-    week <- commitsObj[[i]]$week
+getCommitWeeks <- function(commitObj) {
+  weeksList <- lapply(seq(1:length(commitObj)), function(i) {
+    week <- commitObj[[i]]$week
     return(week)
   })
   weeksVec <- unlist(weeksList)
-  return(weeksVec)
+  weeksDate <- as_datetime(weeksVec)
+  return(weeksDate)
 }
 
-subCommitsObjThisMonth <- function(weeksVec,
-                                   commitsObj,
+subCommitObjThisMonth <- function(commitObj,
                                    month = NULL,
                                    year = NULL) {
+  require(lubridate)
   # check month and year, return month_year
   monthYear <- .checkMonthYear(month, year)
   # get dates from weeksVec
-  weeksDate <- as_datetime(weeksVec)
+  weeksVec <- getCommitWeeks(commitObj)
   # pull month and year, create monthsYear
-  months <- month(weeksDate)
-  years <- year(weeksDate)
+  days <- day(weeksVec)
+  months <- month(weeksVec)
+  years <- year(weeksVec)
   monthsYears <- paste0(months, "_", years)
   # create logical vector where TRUE = commit weeks to keep
   toKeep <- monthsYears == monthYear
   # subset commit object
-  resObj <- commitsObj[toKeep]
+  resObj <- commitObj[toKeep]
 
   return(resObj)
 }
 
-calcTotalCommits <- function(commitsObj) {
-  totals <- lapply(seq(1:length(commitsObj)), function(i){
-    totalNum <- commitsObj[[i]]$total
+calcTotalCommits <- function(commitObj) {
+  totals <- lapply(seq(1:length(commitObj)), function(i){
+    totalNum <- commitObj[[i]]$total
     return(totalNum)
   })
   totals <- unlist(totals)
   return(sum(totals))
 }
+
 #################################################
 ## CONTRIBUTORS ---------------------------------
 #################################################
 
-getContributors <- function(owner = "FredHutch",
-                            repo = "coop") {
-  contributorsObj <- gh("GET /repos/:owner/:repo/contributors",
-                        owner = "FredHutch",
-                        repo = "coop")
-  logins <- getLogins(contributorsObj)
-  return(logins)
+getPaths <- function(owner = "FredHutch",
+                     repo = "coop",
+                     path = "_contributors"){
+  fileNames <- getFileNames(owner = owner,
+                            repo = repo,
+                            path = path)
+  path <- file.path(path, fileNames)
+  return(path)
 }
 
-getLogins <- function(contributorsObj,
-                      toRemove = c("mmistakes", "coliff")) {
-  loginsList <- lapply(seq(1:length(contributorsObj)), function(i) {
-    logins <- contributorsObj[[i]]$login
-    return(logins)
+path2OldestCommitDate <- function(owner = owner,
+                            repo = repo,
+                            path = path){
+  commitObj <- gh("GET /repos/:owner/:repo/commits",
+                  owner = owner,
+                  repo = repo,
+                  path = path)
+  commitNum <- length(commitObj)
+  oldestCommitDate <- as_datetime(commitObj[[max(commitNum)]]$commit$author$date)
+  return(oldestCommitDate)
+}
+
+contributorsAndDates <- function(owner = "FredHutch",
+                                 repo = "coop",
+                                 path = "_contributors",
+                                 ordered = TRUE){
+  paths <- getPaths()
+  contributorDateList <- lapply(seq(1:length(paths)), function(i){
+    oldestCommitDate <- path2OldestCommitDate(owner,
+                                            repo,
+                                            paths[i])
+    resDf <- data.frame(path = paths[i],
+                        commitDate = oldestCommitDate,
+                        stringsAsFactors = FALSE)
+    return(resDf)
   })
-  logins <- unlist(loginsList)
+  contributorDateDf <- do.call(rbind.data.frame, contributorDateList)
+  if (ordered) {
+    contributorDateDf <- contributorDateDf[order(contributorDateDf$commitDate),]
 
-  if (!is.null(toRemove)) {
-    logins <- setdiff(logins, toRemove)
   }
-  return(logins)
+
+  return(contributorDateDf)
 }
 
-logLogins <- function(logins,
-                      logFile = "loginLog.csv") {
-  logFile <- here::here("loginLog", logFile)
-  if (file.exists(logFile)) {
-    read.csv(logFile,)
-  }
+
+newContributorPaths <- function(contributorDateDf,
+                                first,
+                                last) {
+  newPathsThisMonth <- contributorDateDf[contributorDateDf$commitDate > first & contributorDateDf$commitDate < last, ]
+  return(newPathsThisMonth)
+}
+
+path2Contributor <- function(contributorPaths) {
+  id <- gsub("_contributors\\/|.md", "", contributorPaths)
+  return(id)
 }
 
 #################################################
@@ -189,7 +222,7 @@ logLogins <- function(logins,
 }
 
 .ifYearNull <- function() {
-  message("No month specified, using current year")
+  message("No year specified, using current year")
   year <- year(Sys.Date())
 }
 
