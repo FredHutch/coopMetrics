@@ -1,48 +1,63 @@
-## main function to pull data from the GitHub Repository Statistics API
-#' Pull GitHub Repository Statistics data from an account.
-#'
-#' Uses the `gh` package to pull specified data from the GitHubRepository Statistics API
-#'
-#' @param
-#'
-#' @return a dataframe of variables
-#'
-#' @export
-#' @import gh
-getGithubStatistics <- function(month = NULL, year = NULL) {
-  # get posts
-  postNames <- getFileNames()
-  posts <- postsThisMonth(postNames, month = month, year = year)
-  # calculate number of posts this month
-  postsNum <- length(posts$date)
-  # get commit info from last year
-  commitObj <- getCommits()
-  # subset commits
-  commitObjThisMonth <- subCommitObjThisMonth(commitObj,
-                                                month = month,
-                                                year = year)
-  # calculate number of commits this month
-  commitNum <- calcTotalCommits(commitObjThisMonth)
+###################
+## MAIN FUNCTION ##
+###################
+
+pullGithub <- function(owner = "FredHutch",
+                       repo = "coop",
+                       month = month(Sys.Date()),
+                       year = year(Sys.Date())) {
+  # Get post information
+  postNames <- getFileNames(owner = owner,
+                            repo = repo,
+                            path = "_posts")
+  posts <- postsThisMonth(postNames,
+                          month = month,
+                          year = year)
+  githubData <- data.frame(postNum = length(posts$date))
+  # get commit info
+  commitObj <- getCommitActivity(owner = owner,
+                                 repo = repo)
+  commitObjOneMonth <- subsetCommitActivityByMonth(commitObj,
+                                                    month = month,
+                                                    year = year)
+  githubData$commitNum <- calcTotalCommits(commitObjOneMonth)
+  # get contributor info
+  contributorDateDf <- listFilesandEarliestCommitDate(owner = owner,
+                                                      repo = repo,
+                                                      path = "_contributors",
+                                                      ordered = TRUE)
+  contributorData <- calcContributorStats(contributorDateDf,
+                                          month = month,
+                                          year= year)
+
+  githubData <- cbind(githubData, contributorData)
+  row.names(githubData) <- paste(month, year, sep = "_")
+
+  return(githubData)
 }
+
 
 #################################################
 ## POSTS ----------------------------------------
 #################################################
 
-#' Get the names of posts from your github pages _posts repo
+#' Get the names of files from your a specified directory in a github pages repo
 #'
-#' Uses the `gh` package to pull the names of posts from the `_posts` directory
+#' Uses the `gh` package to pull the file names of files from the specified directory.
 #'
 #' @param owner github pages repo owner. Default = "FredHutch".
 #' @param repo github pages repo name. Default = "coop".
+#' @param path github pages path (including "_") of directory. Default = "_posts".
 #'
-#' @return a vector of postNames from the `_posts` directory
+#' @return a vector of file names from the specified directory in `path` argument.
 #'
 #' @export
 #' @import gh
 getFileNames <- function(owner = "FredHutch",
                          repo = "coop",
-                         path = "_posts") {
+                         path = "_posts",
+                         month = NULL,
+                         year = NULL) {
   fileList <- gh("GET /repos/:owner/:repo/contents/:path",
               owner = owner,
               repo = repo,
@@ -51,10 +66,11 @@ getFileNames <- function(owner = "FredHutch",
   fileNames  <- lapply(seq(1:length(fileList)), function(i) {
     fileName <- fileList[[i]]$name
     return(fileName)})
-  return(unlist(fileNames))
+  fileNames <- unlist(fileNames)
+  return(fileNames)
 }
 
-#' Get the postNames of post from the specified month and year (if left unspecified the current month/year is assumed)
+#' Get the post names of post from the specified month and year (if left unspecified the current month/year is assumed)
 #'
 #' Gets postNames from month (`m`) and year (`yyyy`) specified
 #'
@@ -62,20 +78,19 @@ getFileNames <- function(owner = "FredHutch",
 #' @param month month to get postNames for in `m` format
 #' @param year year to get postNames for in `yyyy` format
 #'
-#' @return a df of postNames from this months with other variables
+#' @return a df of posts names from this months with other variables
 #'
 #' @export
 #' @import lubridate
-postsThisMonth <- function(postNames,
+postsThisMonth <- function(fileNames,
                            month = NULL,
                            year = NULL) {
   ## Pull out month and year if not specified ---
-  monthYear <- .checkMonthYear(month, year)
-
+  monthYear <- paste0(month, "_", year)
   ## get dates from postNames -------------------
-  postNamesWrangled <- wranglePostNames(postNames)
-  postNamesWrangled$postNames <- postNames
-  postNamesWrangled$monthYear <- paste0(month(postNamesWrangled$date), "_",
+  postNamesWrangled <- wranglePostNames(fileNames)
+  postNamesWrangled$fileNames <- fileNames
+  postNamesWrangled$fileNames <- paste0(month(postNamesWrangled$date), "_",
                                         year(postNamesWrangled$date))
 
   ## find match ---------------------------------
@@ -87,11 +102,19 @@ postsThisMonth <- function(postNames,
 ## COMMITS --------------------------------------
 #################################################
 
-getCommits <- function(owner = "FredHutch",
+#' Get an object of commit activity from a specified repository
+#'
+#' @param owner string of the repository owner. Default "FredHutch".
+#' @param repo string of the repository name. Default "coop".
+#'
+#' @export
+#'
+getCommitActivity <- function(owner = "FredHutch",
                        repo = "coop") {
   commitObj <- gh("GET /repos/:owner/:repo/stats/commit_activity",
                    owner = "FredHutch",
                    repo = "coop")
+  return(commitObj)
 }
 
 getCommitWeeks <- function(commitObj) {
@@ -104,16 +127,23 @@ getCommitWeeks <- function(commitObj) {
   return(weeksDate)
 }
 
-subCommitObjThisMonth <- function(commitObj,
-                                   month = NULL,
-                                   year = NULL) {
-  require(lubridate)
-  # check month and year, return month_year
-  monthYear <- .checkMonthYear(month, year)
+#' Get an object of commit activity from a specified repository
+#'
+#' @param commitObj Object returned from an `gh` API pull of commit activity.
+#' @param month month to subset object for in `m` format.
+#' @param year year to subset object for in `yyyy` format.
+#'
+#' @return A subsetted commitObj based on the month/year we are gathering information for.
+#'
+#' @export
+#' @import lubridate
+subsetCommitActivityByMonth <- function(commitObj,
+                                        month = month(Sys.Date()),
+                                        year = year(Sys.Date())) {
+  monthYear <- paste(month, year, sep = "_")
   # get dates from weeksVec
   weeksVec <- getCommitWeeks(commitObj)
-  # pull month and year, create monthsYear
-  days <- day(weeksVec)
+  # use month and year to create monthsYear
   months <- month(weeksVec)
   years <- year(weeksVec)
   monthsYears <- paste0(months, "_", years)
@@ -125,6 +155,15 @@ subCommitObjThisMonth <- function(commitObj,
   return(resObj)
 }
 
+#' Parses an object returned by `getCommitActivity` and calculates the total number of commits that occured during the time frame encapsulated in the object.
+#'
+#' @param commitObj Object returned from an `gh` API pull of commit activity.
+#'
+#' @return The total number of commits
+#'
+#' @export
+#'
+
 calcTotalCommits <- function(commitObj) {
   totals <- lapply(seq(1:length(commitObj)), function(i){
     totalNum <- commitObj[[i]]$total
@@ -135,12 +174,12 @@ calcTotalCommits <- function(commitObj) {
 }
 
 #################################################
-## CONTRIBUTORS ---------------------------------
+## CONTRIBUTORS
 #################################################
 
 getPaths <- function(owner = "FredHutch",
                      repo = "coop",
-                     path = "_contributors"){
+                     path = "_contributors") {
   fileNames <- getFileNames(owner = owner,
                             repo = repo,
                             path = path)
@@ -150,7 +189,7 @@ getPaths <- function(owner = "FredHutch",
 
 path2OldestCommitDate <- function(owner = owner,
                             repo = repo,
-                            path = path){
+                            path = path) {
   commitObj <- gh("GET /repos/:owner/:repo/commits",
                   owner = owner,
                   repo = repo,
@@ -160,40 +199,57 @@ path2OldestCommitDate <- function(owner = owner,
   return(oldestCommitDate)
 }
 
-contributorsAndDates <- function(owner = "FredHutch",
-                                 repo = "coop",
-                                 path = "_contributors",
-                                 ordered = TRUE){
-  paths <- getPaths()
-  contributorDateList <- lapply(seq(1:length(paths)), function(i){
+listFilesandEarliestCommitDate <- function(owner = "FredHutch",
+                                           repo = "coop",
+                                           path = "_contributors",
+                                           ordered = TRUE) {
+  paths <- getPaths(owner = owner, repo = repo, path = path)
+  fileDateList <- lapply(seq(1:length(paths)), function(i){
     oldestCommitDate <- path2OldestCommitDate(owner,
-                                            repo,
-                                            paths[i])
+                                              repo,
+                                              paths[i])
     resDf <- data.frame(path = paths[i],
                         commitDate = oldestCommitDate,
                         stringsAsFactors = FALSE)
     return(resDf)
   })
-  contributorDateDf <- do.call(rbind.data.frame, contributorDateList)
+  # bind into a dataframe
+  fileDateDf <- do.call(rbind.data.frame, fileDateList)
   if (ordered) {
-    contributorDateDf <- contributorDateDf[order(contributorDateDf$commitDate),]
+    fileDateDf <- fileDateDf[order(fileDateDf$commitDate),]
 
   }
 
-  return(contributorDateDf)
+  return(fileDateDf)
 }
 
 
-newContributorPaths <- function(contributorDateDf,
-                                first,
-                                last) {
-  newPathsThisMonth <- contributorDateDf[contributorDateDf$commitDate > first & contributorDateDf$commitDate < last, ]
+newFilesWithinDateRange <- function(fileDateDf,
+                                    first,
+                                    last) {
+  newPathsThisMonth <- fileDateDf[fileDateDf$commitDate > first & fileDateDf$commitDate < last, ]
   return(newPathsThisMonth)
 }
 
 path2Contributor <- function(contributorPaths) {
   id <- gsub("_contributors\\/|.md", "", contributorPaths)
   return(id)
+}
+
+calcContributorStats <- function(contributorDateDf,
+                                 month,
+                                 year) {
+  dateRange <- monthYear2DateRange(month = month, year = year)
+  numTotalContributors <- length(contributorDateDf$path)
+  newContributorDf <- newFilesWithinDateRange(fileDateDf = contributorDateDf,
+                                              first = dateRange$first,
+                                              last = dateRange$last)
+  numNewContributors <- length(newContributorDf$path)
+  newContributorNames <- path2Contributor(newContributorDf$path)
+
+  res <- data.frame(numTotalContributors = numTotalContributors,
+                    numNewContributors = numNewContributors,
+                    newContributorNames = paste0(newContributorNames, collapse = "; "))
 }
 
 #################################################
@@ -213,25 +269,4 @@ path2Contributor <- function(contributorPaths) {
          messageTrue,
          messageFalse)
   return(patExists)
-}
-
-.ifMonthNull <- function() {
-  message("No month specified, using current month")
-  month <- month(Sys.Date())
-  return(month)
-}
-
-.ifYearNull <- function() {
-  message("No year specified, using current year")
-  year <- year(Sys.Date())
-}
-
-.checkMonthYear <- function(month = NULL, year = NULL) {
-  if (is.null(month)) {
-    month <- .ifMonthNull()
-  }
-  if (is.null(year)) {
-    year <- .ifYearNull()
-  }
-  return(paste0(month, "_", year))
 }
