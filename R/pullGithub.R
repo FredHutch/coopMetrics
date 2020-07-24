@@ -100,7 +100,7 @@ postsThisMonth <- function(fileNames,
   ## get dates from postNames -------------------
   postNamesWrangled <- wranglePostNames(fileNames)
   postNamesWrangled$fileNames <- fileNames
-  postNamesWrangled$fileNames <- paste0(month(postNamesWrangled$date), "_",
+  postNamesWrangled$monthYear <- paste0(month(postNamesWrangled$date), "_",
                                         year(postNamesWrangled$date))
 
   ## find match ---------------------------------
