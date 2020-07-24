@@ -15,10 +15,10 @@ library(coopMetrics)
 Currently there is one main function that pulls pre-set metrics from both GitHub and Google Analytics. Below is an code chunk showing how to use this function using [the Coop Blog's repository](https://github.com/FredHutch/coop) as an example. 
 ```
 getBlogStatistics(webPropertyName = "Coop blog",
-                              owner = "FredHutch",
-                              repo = "coop",
-                              month = month(Sys.Date()),
-                              year = year(Sys.Date()))
+                  owner = "FredHutch",
+                  repo = "coop",
+                  month = month(Sys.Date()),
+                  year = year(Sys.Date()))
                               
 ```
 And output will look like the code chunk below. Returning a dataframe of the specified months metrics.
