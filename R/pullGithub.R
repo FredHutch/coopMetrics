@@ -1,7 +1,17 @@
 ###################
 ## MAIN FUNCTION ##
 ###################
-
+#' API pull from
+#'
+#' @param owner The repository name of the relevant GitHub repo.
+#' @param repo The owner of the relevant GitHub repo.
+#' @param month specify month as `mm` or `m`. Defaults to current month.
+#' @param year specify year as `yyyy`. Defaults to current year.
+#'
+#' @return a dataframe of metrics for the month and year specified.
+#'
+#' @export
+#' @import lubridate
 pullGithub <- function(owner = "FredHutch",
                        repo = "coop",
                        month = month(Sys.Date()),
