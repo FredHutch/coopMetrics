@@ -21,14 +21,12 @@ getBlogStatistics(webPropertyName = "Coop blog",
                   year = year(Sys.Date()))
                               
 ```
-And output will look like the code chunk below. Returning a dataframe of the specified months metrics.
+And output is the table below. Returning a dataframe of the specified months metrics.
 
-```
-gh_postNum gh_commitNum gh_numTotalContributors gh_numNewContributors gh_newContributorNames ga_users ga_newUsers ga_sessions ga_pageviews
-7_2020          0            1                       8                     0                              37          33          46           85
-                                                                                                                        ga_topPages
-7_2020 /coop/community/another-transition/; /coop/community/science/uw-capstone-collaboration/; /coop/community/technical/nextflow/
-```
+
+|         | gh_postNum | gh_commitNum | gh_numTotalContributors | gh_numNewContributors | gh_newContributorNames | ga_users | ga_newUsers | ga_sessions | ga_pageviews | ga_topPages |
+|---------|------------|--------------|-------------------------|-----------------------|------------------------|----------|-------------|-------------|-----------|---------|
+| 7_2020  | 0          | 1            | 8                       | 0                     |                        | 37       | 33          | 46          | 85                      | /coop/community/another-transition/; /coop/community/science/uw-capstone-collaboration/; /coop/community/technical/nextflow/ |
 
 Right now the metrics include:
 
