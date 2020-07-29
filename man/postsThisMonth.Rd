@@ -7,11 +7,11 @@
 postsThisMonth(fileNames, month = NULL, year = NULL)
 }
 \arguments{
+\item{fileNames}{vector of file names in `yyyy-mm-dd-name.md` format}
+
 \item{month}{month to get postNames for in `m` format}
 
 \item{year}{year to get postNames for in `yyyy` format}
-
-\item{postNames}{vector of postNames in `yyyy-mm-dd-name.md` format}
 }
 \value{
 a df of posts names from this months with other variables

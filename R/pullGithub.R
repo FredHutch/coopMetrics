@@ -84,7 +84,7 @@ getFileNames <- function(owner = "FredHutch",
 #'
 #' Gets postNames from month (`m`) and year (`yyyy`) specified
 #'
-#' @param postNames vector of postNames in `yyyy-mm-dd-name.md` format
+#' @param fileNames vector of file names in `yyyy-mm-dd-name.md` format
 #' @param month month to get postNames for in `m` format
 #' @param year year to get postNames for in `yyyy` format
 #'
@@ -187,6 +187,17 @@ calcTotalCommits <- function(commitObj) {
 ## CONTRIBUTORS
 #################################################
 
+#' Given the repository owner and name and a specific path within that repo this function will return a vector of filepaths within that directory.
+#'
+#' @param owner The owner of the repository to pull file paths from. Defaults to "FredHutch".
+#' @param repo The name of the repository to pull file paths from. Defaults to "coop".
+#' @param path The directory name to pull file paths from. Defaults to "_contributors".
+#'
+#' @return a vector of file paths.
+#'
+#' @export
+#'
+
 getPaths <- function(owner = "FredHutch",
                      repo = "coop",
                      path = "_contributors") {
@@ -196,6 +207,17 @@ getPaths <- function(owner = "FredHutch",
   path <- file.path(path, fileNames)
   return(path)
 }
+
+#' This function pulls the the oldest commit date for the specified path.
+#'
+#' @param owner The owner of the repository to pull file paths from.
+#' @param repo The name of the repository to pull file paths from.
+#' @param path The directory name to pull file paths from.
+#'
+#' @return a date object of the date that the specified file was first commited to the repository.
+#'
+#' @export
+#'
 
 path2OldestCommitDate <- function(owner = owner,
                             repo = repo,
@@ -209,6 +231,17 @@ path2OldestCommitDate <- function(owner = owner,
   return(oldestCommitDate)
 }
 
+#' This function pulls the earliest commit date for each file in a specified path.
+#'
+#' @param owner The owner of the repository to pull file paths from. Defaults to "FredHutch".
+#' @param repo The name of the repository to pull file paths from. Defaults to "coop".
+#' @param path The directory name to pull file paths from. Defaults to "_contributors".
+#' @param ordered A binary parameter. If set to TRUE the dataframe returned will be ordered by newest to oldest file.
+#'
+#' @return a date object of the date that the specified file was first commited to the repository.
+#'
+#' @export
+#'
 listFilesandEarliestCommitDate <- function(owner = "FredHutch",
                                            repo = "coop",
                                            path = "_contributors",
@@ -233,6 +266,16 @@ listFilesandEarliestCommitDate <- function(owner = "FredHutch",
   return(fileDateDf)
 }
 
+#' When given the output of `listFilesAndEarliestCommitDate()` and a date range this function returns the files that were commited within the specified date range.
+#'
+#' @param fileDateDf The owner of the repository to pull file paths from. Defaults to "FredHutch".
+#' @param first The date object of the beginning of the date range.
+#' @param last The date object of the end of the date range.
+#'
+#' @return vector of files that were first commited to the repository within the specified date range.
+#'
+#' @export
+#'
 
 newFilesWithinDateRange <- function(fileDateDf,
                                     first,
@@ -241,11 +284,29 @@ newFilesWithinDateRange <- function(fileDateDf,
   return(newPathsThisMonth)
 }
 
+#' Given paths from the `_contributors` directory this function will return just the contributor ID.
+#'
+#' @param contributorPaths A vector of paths from the `_contributors` directory.
+
+#' @return A vector of contributor IDs from the `_contributors` directory.
+#'
+#' @export
+#'
 path2Contributor <- function(contributorPaths) {
   id <- gsub("_contributors\\/|.md", "", contributorPaths)
   return(id)
 }
 
+#' This function calculates statistics such as the total number of contributors, number of new contributors, and their names for a given month.
+#'
+#' @param contributorDateDf The owner of the repository to pull file paths from. Defaults to "FredHutch".
+#' @param month
+#' @param year
+#'
+#' @return
+#'
+#' @export
+#'
 calcContributorStats <- function(contributorDateDf,
                                  month,
                                  year) {

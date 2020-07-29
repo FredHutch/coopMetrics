@@ -2,7 +2,7 @@
 % Please edit documentation in R/pullGoogleAnalytics.R
 \name{pullGoogleAnalytics}
 \alias{pullGoogleAnalytics}
-\title{API pull from}
+\title{API pull from both Google Analytics and GitHub specifically for a GitHub pages website build using Jekyll.}
 \usage{
 pullGoogleAnalytics(
   webPropertyName,
@@ -23,5 +23,5 @@ pullGoogleAnalytics(
 a dataframe of metrics for the month and year specified.
 }
 \description{
-API pull from
+API pull from both Google Analytics and GitHub specifically for a GitHub pages website build using Jekyll.
 }

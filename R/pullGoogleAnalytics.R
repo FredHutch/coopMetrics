@@ -1,7 +1,7 @@
 ###################
 ## MAIN FUNCTION ##
 ###################
-#' API pull from
+#' API pull from both Google Analytics and GitHub specifically for a GitHub pages website build using Jekyll.
 #'
 #' @param webPropertyName A variable from GoogleAnalytics. You can find out the webproperty name using `ga_account_list()`
 #' @param month specify month as `mm` or `m`. Defaults to current month.
@@ -42,6 +42,16 @@ pullGoogleAnalytics <- function(webPropertyName,
 
 ###############
 
+#' Takes in a month and year and outputs the date range of that month as a list.
+#'
+#' @param month specify month as `mm` or `m`. Defaults to current month.
+#' @param year specify year as `yyyy`. Defaults to current year.
+#'
+#' @return a list of the date range for the specified month/year.
+#'
+#' @export
+#' @import lubridate
+
 monthYear2DateRange <- function(month,
                                 year) {
   # hard code beginning of month as the first
@@ -63,6 +73,15 @@ monthYear2DateRange <- function(month,
   return(res)
 
 }
+
+#' Given a Google Analytics `webPropertyName` this function will pull the corresponding GoogleAnalytics account information
+#'
+#' @param webPropertyName a Google Analytics `webPropertyName`. You can find out the webproperty name using `ga_account_list()`.
+#' @param year specify year as `yyyy`. Defaults to current year.
+#'
+#' @return a dataframe of metrics for the month and year specified.
+#'
+#' @export
 
 getAccountInfo <- function(webPropertyName,
                            onlyViewId = TRUE) {
@@ -93,10 +112,20 @@ pullWebData <- function(viewId,
   return(webData)
 }
 
+#' Using the Google analytics API pulls page views by page path for the date range specified.
+#'
+#' @param viewId A Google Analytics `viewId`. You can find out the webproperty name using `getAccountInfo()` or `ga_account_list()`.
+#' @param dateRange A vector of two date objects.
+#' @param onlyPosts A binary parameter. If TRUE only returns page path results for posts.
+#' @param topThree A binary parameter. If TRUE only returns the top three most viewed page paths.
+
+#' @return a dataframe of metrics for the month and year specified.
+#'
+#' @export
+
 getPageViewsByPath <- function(viewId,
                                dateRange,
                                onlyPosts = TRUE,
-                               ordered = TRUE,
                                topThree = TRUE){
   pageViews <- pullWebData(viewId = viewId,
                            dateRange = dateRange,
@@ -109,7 +138,7 @@ getPageViewsByPath <- function(viewId,
                                                       "/contributors/", "/posts/",
                                                       "/tags/", "/about/",
                                                       "/categories/"),
-                                 ordered = ordered)
+                                 ordered = TRUE)
   }
 
   if (topThree) {
