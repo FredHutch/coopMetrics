@@ -1,6 +1,6 @@
 # coopMetrics
 
-The `coopMetrics` package was developed as a thin wrapper around the [`gh`](https://github.com/r-lib/gh) and [`googleAnalyticsR`](https://code.markedmondson.me/googleAnalyticsR/) packages developed to work specifically with GitHub Pages blog set up using [Jekyll](https://jekyllrb.com/). Providing it with a GoogleAnalytics `webPropertyName`, a GitHub repository name and owner, and the desired month and year and it will return various statistics related to your blog!
+The `coopMetrics` package was developed as a thin wrapper around the [`gh`](https://github.com/r-lib/gh) and [`googleAnalyticsR`](https://code.markedmondson.me/googleAnalyticsR/) packages developed to work specifically with GitHub Pages blog set up using [Jekyll](https://jekyllrb.com/). Providing it with a GoogleAnalytics `webPropertyName`, a GitHub repository name and owner, and the desired month and year will return various statistics related to your blog!
 
 ## Installation
 ```
