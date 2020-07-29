@@ -46,6 +46,12 @@ From Google Analytics:
 
 Columns with the prefix `gh` are pulled from GitHub and columns with the prefix `ga` are pulled from Google Analytics.
 
+## Whats going on under the hood
+
+
+
+
+
 ## Notes
 
 * Please note that this package is in very early developement and there are currently no tests.
