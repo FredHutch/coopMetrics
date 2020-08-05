@@ -6,6 +6,11 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(gh)
+library(googleAnalyticsR)
+library(googleAuthR)
+library(knitr)
+library(kableExtra)
+library(ggplot2)
 # source script files
 files.sources <- list.files("R/")
 sapply(paste0("R/", files.sources), source)
@@ -13,12 +18,35 @@ sapply(paste0("R/", files.sources), source)
 
 ## New posts and contributor statistics
 
+Here we pull the first 6 months of contributor statistics by iterating over the `pullGithub()` function using mapply.
+
 ```{r}
-pullGitHub()
+six_mo <- mapply(coopMetrics::pullGithub, month = 1:6, MoreArgs = list(owner = "FredHutch", repo = "coop", year = "2020"))
+colnames(six_mo) <- as.character(seq(1:6))
+
+six_mo <- t(six_mo)
+
+six_mo %>%
+  kable() %>%
+  kable_styling()
+```
+
+## FIXME
+
+- for plotting output needs to have variable as cols and months as rows
+- numTotalContributors doesn't capture the num contributors during that month. Instead captures total contributors today
+- new contributor names are factors instead of strings so they show up as numbers.
+
+```{r}
+
 ```
 
 ## Pageviews and web analytics
 
 ```{r}
-pullGoogleAnalytics()
+six_mo <- mapply(coopMetrics::pullGoogleAnalytics, month = 1:6, MoreArgs = list(webPropertyName = "Coop blog", year = "2020"))
+
 ```
+## FIXME
+
+- unsued argument ordered = true (remove arg from function call)
