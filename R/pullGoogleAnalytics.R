@@ -32,7 +32,6 @@ pullGoogleAnalytics <- function(webPropertyName,
   topPages <- getPageViewsByPath(viewId = viewId,
                                  dateRange = dateRangeList$range,
                                  onlyPosts = TRUE,
-                                 ordered = TRUE,
                                  topThree = .topPosts)
   # Collapse and merge
   webData$topPages <- paste0(topPages$pagePath, collapse = "; ")
