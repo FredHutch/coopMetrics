@@ -46,9 +46,8 @@ pullGithub <- function(owner = "FredHutch",
   return(githubData)
 }
 
-
 #################################################
-## POSTS ----------------------------------------
+## PULL REPO CONTENTS --------------------------
 #################################################
 
 #' Get the names of files from your a specified directory in a github pages repo
@@ -65,13 +64,11 @@ pullGithub <- function(owner = "FredHutch",
 #' @import gh
 getFileNames <- function(owner = "FredHutch",
                          repo = "coop",
-                         path = "_posts",
-                         month = NULL,
-                         year = NULL) {
+                         path = NULL) {
   fileList <- gh("GET /repos/:owner/:repo/contents/:path",
-              owner = owner,
-              repo = repo,
-              path = path)
+                 owner = owner,
+                 repo = repo,
+                 path = path)
 
   fileNames  <- lapply(seq(1:length(fileList)), function(i) {
     fileName <- fileList[[i]]$name
@@ -79,6 +76,59 @@ getFileNames <- function(owner = "FredHutch",
   fileNames <- unlist(fileNames)
   return(fileNames)
 }
+
+#' Given the repository owner and name and a specific path within that repo this function will return a vector of filepaths within that directory.
+#'
+#' @param owner The owner of the repository to pull file paths from. Defaults to "FredHutch".
+#' @param repo The name of the repository to pull file paths from. Defaults to "coop".
+#' @param path The directory name to pull file paths from. Defaults to "_contributors".
+#'
+#' @return a vector of file paths.
+#'
+#' @export
+#'
+
+getPaths <- function(owner = "FredHutch",
+                     repo = "coop",
+                     path = NULL) {
+  fileNames <- getFileNames(owner = owner,
+                            repo = repo,
+                            path = path)
+  path <- file.path(path, fileNames)
+  return(path)
+}
+
+#################################################
+## PULL REPO COMMITS ----------------------------
+#################################################
+
+#' This function pulls the the oldest commit date for the specified path.
+#'
+#' @param owner The owner of the repository to pull file paths from.
+#' @param repo The name of the repository to pull file paths from.
+#' @param path The directory name to pull file paths from.
+#'
+#' @return a date object of the date that the specified file was first commited to the repository.
+#'
+#' @export
+#'
+
+path2OldestCommitDate <- function(owner = owner,
+                                  repo = repo,
+                                  path = path) {
+  commitObj <- gh("GET /repos/:owner/:repo/commits",
+                  owner = owner,
+                  repo = repo,
+                  path = path)
+  commitNum <- length(commitObj)
+  oldestCommitDate <- as_datetime(commitObj[[max(commitNum)]]$commit$author$date)
+  return(oldestCommitDate)
+}
+
+
+#################################################
+## POSTS ----------------------------------------
+#################################################
 
 #' Get the post names of post from the specified month and year (if left unspecified the current month/year is assumed)
 #'
@@ -186,50 +236,6 @@ calcTotalCommits <- function(commitObj) {
 #################################################
 ## CONTRIBUTORS
 #################################################
-
-#' Given the repository owner and name and a specific path within that repo this function will return a vector of filepaths within that directory.
-#'
-#' @param owner The owner of the repository to pull file paths from. Defaults to "FredHutch".
-#' @param repo The name of the repository to pull file paths from. Defaults to "coop".
-#' @param path The directory name to pull file paths from. Defaults to "_contributors".
-#'
-#' @return a vector of file paths.
-#'
-#' @export
-#'
-
-getPaths <- function(owner = "FredHutch",
-                     repo = "coop",
-                     path = "_contributors") {
-  fileNames <- getFileNames(owner = owner,
-                            repo = repo,
-                            path = path)
-  path <- file.path(path, fileNames)
-  return(path)
-}
-
-#' This function pulls the the oldest commit date for the specified path.
-#'
-#' @param owner The owner of the repository to pull file paths from.
-#' @param repo The name of the repository to pull file paths from.
-#' @param path The directory name to pull file paths from.
-#'
-#' @return a date object of the date that the specified file was first commited to the repository.
-#'
-#' @export
-#'
-
-path2OldestCommitDate <- function(owner = owner,
-                            repo = repo,
-                            path = path) {
-  commitObj <- gh("GET /repos/:owner/:repo/commits",
-                  owner = owner,
-                  repo = repo,
-                  path = path)
-  commitNum <- length(commitObj)
-  oldestCommitDate <- as_datetime(commitObj[[max(commitNum)]]$commit$author$date)
-  return(oldestCommitDate)
-}
 
 #' This function pulls the earliest commit date for each file in a specified path.
 #'
