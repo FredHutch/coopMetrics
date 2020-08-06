@@ -98,6 +98,7 @@ getPaths <- function(owner = "FredHutch",
   return(path)
 }
 
+
 #################################################
 ## PULL REPO COMMITS ----------------------------
 #################################################
@@ -125,6 +126,59 @@ path2OldestCommitDate <- function(owner = owner,
   return(oldestCommitDate)
 }
 
+#' This function pulls the earliest commit date for each file in a specified path.
+#'
+#' @param owner The owner of the repository to pull file paths from. Defaults to "FredHutch".
+#' @param repo The name of the repository to pull file paths from. Defaults to "coop".
+#' @param path The directory name to pull file paths from. Defaults to "_contributors".
+#' @param ordered A binary parameter. If set to TRUE the dataframe returned will be ordered by newest to oldest file.
+#'
+#' @return a date object of the date that the specified file was first commited to the repository.
+#'
+#' @export
+#'
+listFilesandEarliestCommitDate <- function(owner = "FredHutch",
+                                           repo = "coop",
+                                           path = "_contributors",
+                                           ordered = TRUE) {
+  paths <- getPaths(owner = owner, repo = repo, path = path)
+  fileDateList <- lapply(seq(1:length(paths)), function(i){
+    oldestCommitDate <- path2OldestCommitDate(owner,
+                                              repo,
+                                              paths[i])
+    resDf <- data.frame(path = paths[i],
+                        commitDate = oldestCommitDate,
+                        stringsAsFactors = FALSE)
+    return(resDf)
+  })
+  # bind into a dataframe
+  fileDateDf <- do.call(rbind.data.frame, fileDateList)
+  if (ordered) {
+    fileDateDf <- fileDateDf[order(fileDateDf$commitDate),]
+
+  }
+
+  return(fileDateDf)
+}
+
+
+#' When given the output of `listFilesAndEarliestCommitDate()` and a date range this function returns the files that were commited within the specified date range.
+#'
+#' @param fileDateDf The owner of the repository to pull file paths from. Defaults to "FredHutch".
+#' @param first The date object of the beginning of the date range.
+#' @param last The date object of the end of the date range.
+#'
+#' @return vector of files that were first commited to the repository within the specified date range.
+#'
+#' @export
+#'
+
+newFilesWithinDateRange <- function(fileDateDf,
+                                    first,
+                                    last) {
+  newPathsThisMonth <- fileDateDf[fileDateDf$commitDate > first & fileDateDf$commitDate < last, ]
+  return(newPathsThisMonth)
+}
 
 #################################################
 ## POSTS ----------------------------------------
@@ -237,59 +291,6 @@ calcTotalCommits <- function(commitObj) {
 ## CONTRIBUTORS
 #################################################
 
-#' This function pulls the earliest commit date for each file in a specified path.
-#'
-#' @param owner The owner of the repository to pull file paths from. Defaults to "FredHutch".
-#' @param repo The name of the repository to pull file paths from. Defaults to "coop".
-#' @param path The directory name to pull file paths from. Defaults to "_contributors".
-#' @param ordered A binary parameter. If set to TRUE the dataframe returned will be ordered by newest to oldest file.
-#'
-#' @return a date object of the date that the specified file was first commited to the repository.
-#'
-#' @export
-#'
-listFilesandEarliestCommitDate <- function(owner = "FredHutch",
-                                           repo = "coop",
-                                           path = "_contributors",
-                                           ordered = TRUE) {
-  paths <- getPaths(owner = owner, repo = repo, path = path)
-  fileDateList <- lapply(seq(1:length(paths)), function(i){
-    oldestCommitDate <- path2OldestCommitDate(owner,
-                                              repo,
-                                              paths[i])
-    resDf <- data.frame(path = paths[i],
-                        commitDate = oldestCommitDate,
-                        stringsAsFactors = FALSE)
-    return(resDf)
-  })
-  # bind into a dataframe
-  fileDateDf <- do.call(rbind.data.frame, fileDateList)
-  if (ordered) {
-    fileDateDf <- fileDateDf[order(fileDateDf$commitDate),]
-
-  }
-
-  return(fileDateDf)
-}
-
-#' When given the output of `listFilesAndEarliestCommitDate()` and a date range this function returns the files that were commited within the specified date range.
-#'
-#' @param fileDateDf The owner of the repository to pull file paths from. Defaults to "FredHutch".
-#' @param first The date object of the beginning of the date range.
-#' @param last The date object of the end of the date range.
-#'
-#' @return vector of files that were first commited to the repository within the specified date range.
-#'
-#' @export
-#'
-
-newFilesWithinDateRange <- function(fileDateDf,
-                                    first,
-                                    last) {
-  newPathsThisMonth <- fileDateDf[fileDateDf$commitDate > first & fileDateDf$commitDate < last, ]
-  return(newPathsThisMonth)
-}
-
 #' Given paths from the `_contributors` directory this function will return just the contributor ID.
 #'
 #' @param contributorPaths A vector of paths from the `_contributors` directory.
@@ -322,7 +323,7 @@ calcContributorStats <- function(contributorDateDf,
                                               first = dateRange$first,
                                               last = dateRange$last)
   numNewContributors <- length(newContributorDf$path)
-  newContributorNames <- path2Contributor(newContributorDf$path)
+  newContributorNames <- as.character(path2Contributor(newContributorDf$path))
 
   res <- data.frame(numTotalContributors = numTotalContributors,
                     numNewContributors = numNewContributors,

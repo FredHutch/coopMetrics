@@ -133,11 +133,10 @@ getPageViewsByPath <- function(viewId,
   # subset
   if(onlyPosts){
     pageViews <- .gaViewOnlyPosts(pageViews = pageViews,
-                                 subPagesToRemove = c("^/coop/$", "/calendar/",
+                                  subPagesToRemove = c("^/coop/$", "/calendar/",
                                                       "/contributors/", "/posts/",
                                                       "/tags/", "/about/",
-                                                      "/categories/"),
-                                 ordered = TRUE)
+                                                      "/categories/"))
   }
 
   if (topThree) {
@@ -147,13 +146,10 @@ getPageViewsByPath <- function(viewId,
 }
 
 ## helper functions -------------
-.gaViewOnlyPosts <- function(pageViews, subPagesToRemove, ordered = TRUE) {
+.gaViewOnlyPosts <- function(pageViews, subPagesToRemove) {
   pattern <- paste(subPagesToRemove, collapse = "|")
   pageViews <- pageViews[!grepl(pattern, pageViews$pagePath, ),]
   # Order by most viewed to least
-  if (ordered) {
-    pageViews <- pageViews[order(pageViews$pageviews, decreasing = TRUE),]
-  }
-
+  pageViews <- pageViews[order(pageViews$pageviews, decreasing = TRUE),]
   return(pageViews)
 }
