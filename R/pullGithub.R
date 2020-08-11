@@ -114,7 +114,7 @@ getPaths <- function(owner = "FredHutch",
 #' @export
 #'
 
-path2OldestCommitDate <- function(owner = owner,
+pathToOldestCommitDate <- function(owner = owner,
                                   repo = repo,
                                   path = path) {
   commitObj <- gh("GET /repos/:owner/:repo/commits",
@@ -122,7 +122,7 @@ path2OldestCommitDate <- function(owner = owner,
                   repo = repo,
                   path = path)
   commitNum <- length(commitObj)
-  oldestCommitDate <- as_datetime(commitObj[[max(commitNum)]]$commit$author$date)
+  oldestCommitDate <- as_date(commitObj[[max(commitNum)]]$commit$author$date)
   return(oldestCommitDate)
 }
 
@@ -143,7 +143,7 @@ listFilesandEarliestCommitDate <- function(owner = "FredHutch",
                                            ordered = TRUE) {
   paths <- getPaths(owner = owner, repo = repo, path = path)
   fileDateList <- lapply(seq(1:length(paths)), function(i){
-    oldestCommitDate <- path2OldestCommitDate(owner,
+    oldestCommitDate <- pathToOldestCommitDate(owner,
                                               repo,
                                               paths[i])
     resDf <- data.frame(path = paths[i],
@@ -299,36 +299,95 @@ calcTotalCommits <- function(commitObj) {
 #'
 #' @export
 #'
-path2Contributor <- function(contributorPaths) {
+pathToContributor <- function(contributorPaths) {
   id <- gsub("_contributors\\/|.md", "", contributorPaths)
   return(id)
 }
 
-#' This function calculates statistics such as the total number of contributors, number of new contributors, and their names for a given month.
+compareToKnownContributorCache <- function(owner = "FredHutch",
+                                           repo = "coop") {
+  # load cache
+  load("R/sysdata.rda")
+  # pull current contributor filepaths
+  contributors <- getPaths(owner = owner,
+                           repo = repo,
+                           path = "_contributors")
+  uncachedContributorPath <- setdiff(contributors, knownContributorData$path)
+  return(uncachedContributorPath)
+}
+
+pullContributorData <- function(contributorPath,
+                                owner = "FredHutch",
+                                repo = "coop") {
+  # pull earlist commit date for unknown paths
+  contributorDates <- contributorPath %>%
+    map_dbl(~ pathToOldestCommitDate(owner = owner,
+                                    repo = repo,
+                                    path = .x)) %>%
+    as_date()
+  contributorData <- tibble(path = contributorPath,
+                            commitDate = contributorDates,
+                            handle = pathToContributor(contributorPath))
+  return(contributorData)
+}
+
+calcContributorCommitData <- function(contributorData) {
+  contributorDataCount <- contributorData %>%
+    group_by(month) %>%
+    summarise(numNewContributors = n(),
+              handles = paste0(handle, collapse = ", ")) %>%
+    mutate(totalContributors = cumsum(numNewContributors)) %>%
+    select(month, totalContributors, numNewContributors, handles)
+
+  return(contributorDataCount)
+}
+
+completeMonths <- function(df,
+                           missing = "zero") {
+  completeRange <- tibble(month = seq.Date(from = min(df$month),
+                                           to = max(df$month),
+                                           by = "month"))
+  completeTbl <- full_join(df, completeRange) %>%
+    arrange(month) %>%
+    mutate_at(c("totalContributors", "numNewContributors"), ~replace(., is.na(.), 0))
+
+  return(completeTbl)
+}
+
+#' This function calculates statistics such as the total number of contributors, number of new contributors, and their names for each month in a given date range
 #'
-#' @param contributorDateDf The owner of the repository to pull file paths from. Defaults to "FredHutch".
-#' @param month
-#' @param year
+#' @param owner The owner of the repository that the blog lives in.
+#' @param repo The repository name.
+#' @param dateRange A vector of two date objects indicating the date range of interest.
 #'
 #' @return
 #'
 #' @export
 #'
-calcContributorStats <- function(contributorDateDf,
-                                 month,
-                                 year) {
-  dateRange <- monthYear2DateRange(month = month, year = year)
-  numTotalContributors <- length(contributorDateDf$path)
-  newContributorDf <- newFilesWithinDateRange(fileDateDf = contributorDateDf,
-                                              first = dateRange$first,
-                                              last = dateRange$last)
-  numNewContributors <- length(newContributorDf$path)
-  newContributorNames <- as.character(path2Contributor(newContributorDf$path))
+calcContributorStats <- function(owner,
+                                 repo,
+                                 dateRange) {
+  load("R/sysdata.rda")
+  contributorData <- knownContributorData
+  contributorData$commitDate <- as_date(contributorData$commitDate)
+  # compare known contributors (generated by data-raw/DATA.R and stored in R/sysdata.rda)
+  # to unknown contributors (contributors with a file in _contributors but with no data stored in sysdata.rda)
+  # known contributor list will be updated as needed and noted as a new version of the package.
+  uncachedContributorPath <- compareToKnownContributorCache(owner = owner, repo = repo)
+  # if there are uncached contributors pull contributor data for these paths
+  if (length(uncachedContributorPath) != 0) {
+    uncachedContributorData <- pullContributorData(uncachedContributorPath, owner = owner, repo = repo)
+    contributorData <- bind_rows(contributorData, uncachedContributorData)
+  }
+  contributorsByMonthYear <-  contributorData %>%
+    mutate(month = floor_date(commitDate, unit = "month")) %>%
+    calcContributorCommitData() %>%
+    filter(month > min(dateRange) & month < max(dateRange)) %>%
+    completeMonths()
 
-  res <- data.frame(numTotalContributors = numTotalContributors,
-                    numNewContributors = numNewContributors,
-                    newContributorNames = paste0(newContributorNames, collapse = "; "))
-}
+  return(contributorsByMonthYear)
+
+  }
 
 #################################################
 ## HELPER FUNCTIONS -----------------------------
