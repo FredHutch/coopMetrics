@@ -114,7 +114,7 @@ getPaths <- function(owner = "FredHutch",
 #' @export
 #'
 
-path2OldestCommitDate <- function(owner = owner,
+pathToOldestCommitDate <- function(owner = owner,
                                   repo = repo,
                                   path = path) {
   commitObj <- gh("GET /repos/:owner/:repo/commits",
@@ -143,7 +143,7 @@ listFilesandEarliestCommitDate <- function(owner = "FredHutch",
                                            ordered = TRUE) {
   paths <- getPaths(owner = owner, repo = repo, path = path)
   fileDateList <- lapply(seq(1:length(paths)), function(i){
-    oldestCommitDate <- path2OldestCommitDate(owner,
+    oldestCommitDate <- pathToOldestCommitDate(owner,
                                               repo,
                                               paths[i])
     resDf <- data.frame(path = paths[i],
@@ -321,7 +321,7 @@ pullContributorData <- function(contributorPath,
                                 repo = "coop") {
   # pull earlist commit date for unknown paths
   contributorDates <- contributorPath %>%
-    map_dbl(~ path2OldestCommitDate(owner = owner,
+    map_dbl(~ pathToOldestCommitDate(owner = owner,
                                     repo = repo,
                                     path = .x)) %>%
     as_date()
