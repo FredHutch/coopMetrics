@@ -9,7 +9,7 @@ knownContributorData <- listFilesandEarliestCommitDate(owner = owner,
                                                        repo = repo,
                                                        path = "_contributors",
                                                        ordered = TRUE)
-knownContributorData$handle <- path2Contributor(contributorData$path)
+knownContributorData$handle <- pathToContributor(knownContributorData$path)
 cacheDate <- Sys.time()
 
-usethis::use_data(knownContributorData, cacheDate, internal = TRUE, overwrite = FALSE)
+usethis::use_data(knownContributorData, cacheDate, internal = TRUE, overwrite = TRUE)
