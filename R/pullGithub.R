@@ -14,35 +14,11 @@
 #' @import lubridate
 pullGithub <- function(owner = "FredHutch",
                        repo = "coop",
-                       month = month(Sys.Date()),
-                       year = year(Sys.Date())) {
-  # Get post information
-  postNames <- getFileNames(owner = owner,
-                            repo = repo,
-                            path = "_posts")
-  posts <- postsThisMonth(postNames,
-                          month = month,
-                          year = year)
-  githubData <- data.frame(postNum = length(posts$date))
-  # get commit info
-  commitObj <- getCommitActivity(owner = owner,
-                                 repo = repo)
-  commitObjOneMonth <- subsetCommitActivityByMonth(commitObj,
-                                                    month = month,
-                                                    year = year)
-  githubData$commitNum <- calcTotalCommits(commitObjOneMonth)
-  # get contributor info
-  contributorDateDf <- listFilesandEarliestCommitDate(owner = owner,
-                                                      repo = repo,
-                                                      path = "_contributors",
-                                                      ordered = TRUE)
-  contributorData <- calcContributorStats(contributorDateDf,
-                                          month = month,
-                                          year= year)
-
-  githubData <- cbind(githubData, contributorData)
-  row.names(githubData) <- paste(month, year, sep = "_")
-
+                       dateRange) {
+  # Get contributor information
+  calcContributorStats(owner = owner,
+                       repo = repo,
+                       dateRange = dateRange)
   return(githubData)
 }
 
@@ -161,23 +137,33 @@ listFilesandEarliestCommitDate <- function(owner = "FredHutch",
   return(fileDateDf)
 }
 
+pullCommitNum  <- function(owner,
+                           repo,
+                           dateRange) {
+  start <- min(dateRange)
+  end <- max(dateRange)
 
-#' When given the output of `listFilesAndEarliestCommitDate()` and a date range this function returns the files that were commited within the specified date range.
-#'
-#' @param fileDateDf The owner of the repository to pull file paths from. Defaults to "FredHutch".
-#' @param first The date object of the beginning of the date range.
-#' @param last The date object of the end of the date range.
-#'
-#' @return vector of files that were first commited to the repository within the specified date range.
-#'
-#' @export
-#'
+  commitObj <- gh("GET /repos/:owner/:repo/commits",
+                  owner = "FredHutch",
+                  repo = "coop",
+                  since = start,
+                  until = end)
+  # unnest commitDates from list of lists
+  # flatten to a vector
+  # coerce to date
+  dates <- commitObj %>%
+    map("commit") %>%
+    map("committer") %>%
+    map("date") %>%
+    flatten_chr() %>%
+    as_date()
 
-newFilesWithinDateRange <- function(fileDateDf,
-                                    first,
-                                    last) {
-  newPathsThisMonth <- fileDateDf[fileDateDf$commitDate > first & fileDateDf$commitDate < last, ]
-  return(newPathsThisMonth)
+  commitsByMonth <- tibble(commitDate = dates) %>%
+    mutate(month = floor_date(commitDate, unit = "month")) %>%
+    group_by(month) %>%
+    summarise(numCommits = n())
+
+  return(commitsByMonth)
 }
 
 #################################################
@@ -341,10 +327,11 @@ calcContributorCommitData <- function(contributorData) {
   return(contributorDataCount)
 }
 
-completeMonths <- function(df) {
-  completeRange <- tibble(month = seq.Date(from = min(df$month),
-                                           to = max(df$month),
-                                           by = "month"))
+completeMonths <- function(df,
+                           dateRange) {
+  completeRange <- tibble(month = seq.Date(from = min(dateRange),
+                                             to = max(dateRange),
+                                             by = "month"))
   completeTbl <- full_join(df, completeRange) %>%
     arrange(month) %>%
     mutate_at(c("totalContributors", "numNewContributors"), ~replace(., is.na(.), 0))
@@ -385,8 +372,11 @@ calcContributorStats <- function(owner,
   contributorsByMonthYear <-  contributorData %>%
     mutate(month = floor_date(commitDate, unit = "month")) %>%
     calcContributorCommitData() %>%
-    filter(month > min(dateRange) & month < max(dateRange)) %>%
-    completeMonths()
+    # need to pipe an ifelse statement into here
+    # if there are no entries within date range need to carry over
+    # info about total contributors from the latest month
+    completeMonths(dateRange = dateRange) %>%
+    filter(month > min(dateRange) & month < max(dateRange))
 
   return(contributorsByMonthYear)
 }
