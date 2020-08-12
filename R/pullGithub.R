@@ -16,13 +16,20 @@ pullGithub <- function(owner = "FredHutch",
                        repo = "coop",
                        dateRange) {
   # Get contributor information
-  calcContributorStats(owner = owner,
-                       repo = repo,
-                       dateRange = dateRange)
+  contributorInfo <- calcContributorNum(owner = owner,
+                                        repo = repo,
+                                        dateRange = dateRange)
   # Get the number of commits
-  calcCommitNum(owner = owner,
-                repo = repo,
-                dateRange = dateRange)
+  commitInfo <- calcCommitNum(owner = owner,
+                              repo = repo,
+                              dateRange = dateRange)
+  postInfo <- calcPostNum(owner = owner,
+                          repo = repo,
+                          dateRange = dateRange,
+                          by = "postName")
+  githubData <- left_join(contributorInfo, commitInfo, by = "month") %>%
+    left_join(., postInfo, by = "month")
+
   return(githubData)
 }
 
@@ -36,7 +43,7 @@ pullGithub <- function(owner = "FredHutch",
 #'
 #' @param owner github pages repo owner. Default = "FredHutch".
 #' @param repo github pages repo name. Default = "coop".
-#' @param path github pages path (including "_") of directory. Default = "_posts".
+#' @param path github pages path (including "_") of directory.
 #'
 #' @return a vector of file names from the specified directory in `path` argument.
 #'
@@ -49,11 +56,7 @@ getFileNames <- function(owner = "FredHutch",
                  owner = owner,
                  repo = repo,
                  path = path)
-
-  fileNames  <- lapply(seq(1:length(fileList)), function(i) {
-    fileName <- fileList[[i]]$name
-    return(fileName)})
-  fileNames <- unlist(fileNames)
+  fileNames <- fileList %>% map_chr("name")
   return(fileNames)
 }
 
@@ -154,19 +157,32 @@ calcCommitNum  <- function(owner,
 #'
 #' @export
 #' @import lubridate
-calcPosts <- function(owner,
-                      repo,
-                      dateRange) {
-  ## Pull out month and year if not specified ---
-  ## get dates from postNames -------------------
-  postNamesWrangled <- wranglePostNames(fileNames)
-  postNamesWrangled$fileNames <- fileNames
-  postNamesWrangled$monthYear <- paste0(month(postNamesWrangled$date), "_",
-                                        year(postNamesWrangled$date))
+calcPostNum <- function(owner,
+                        repo,
+                        dateRange,
+                        by = "postName") {
 
-  ## find match ---------------------------------
-  match <- postNamesWrangled[postNamesWrangled$monthYear == monthYear,]
-  return(match)
+  if (by != "postName") {
+    message("function does not handle other options for `by` at this time")
+  }
+  end <- ceiling_date(max(dateRange), unit = "month") - 1
+  start <- floor_date(min(dateRange), unit = "month")
+
+  # get filenames from "_posts" directory
+  #
+  postDf <- tibble(postNames = getFileNames(owner = owner,
+                                            repo = repo,
+                                            path = "_posts")) %>%
+    mutate(date = as_date(str_sub(postNames, start = 1, end = 10))) %>%
+    mutate(month = floor_date(date, unit = "month")) %>%
+    group_by(month) %>%
+    summarise(numNewPosts = n()) %>%
+    completeMonths(dateRange = dateRange) %>%
+    mutate_at("numNewPosts", ~replace(., is.na(.), 0)) %>%
+    mutate(numPostTotal = cumsum(numNewPosts))%>%
+    filter(month >= start & month <= end)
+
+  return(postDf)
 }
 
 
@@ -230,9 +246,7 @@ completeMonths <- function(df,
                                              to = max(dateRange),
                                              by = "month"))
   completeTbl <- full_join(df, completeRange) %>%
-    arrange(month) %>%
-    mutate_at(c("totalContributors", "numNewContributors"), ~replace(., is.na(.), 0))
-
+    arrange(month)
   return(completeTbl)
 }
 
@@ -246,9 +260,12 @@ completeMonths <- function(df,
 #'
 #' @export
 #'
-calcContributorStats <- function(owner,
+calcContributorNum <- function(owner,
                                  repo,
                                  dateRange) {
+  # dateRange to start and end date rounded to the month
+  start <- floor_date(min(dateRange), unit = "months")
+  end <- ceiling_date(max(dateRange), unit = "months")
   # load known contributor cache
   load("R/sysdata.rda")
   contributorData <- knownContributorData
@@ -269,18 +286,21 @@ calcContributorStats <- function(owner,
   contributorsByMonthYear <-  contributorData %>%
     mutate(month = floor_date(commitDate, unit = "month")) %>%
     calcContributorCommitData() %>%
-    # need to pipe an ifelse statement into here
-    # if there are no entries within date range need to carry over
-    # info about total contributors from the latest month
     completeMonths(dateRange = dateRange) %>%
-    filter(month > min(dateRange) & month < max(dateRange))
+    filter(month >= start & month <= end)
+  # if no contributors are added during the date range specified contributorsByMonthYear will be a dataframe filled with
+  # NAs rather than carrying forth the info from previous months. Need to fill it in with the correct info.
+  noTotal <- all(is.na(contributorsByMonthYear$totalContributors))
+  if (noTotal) {
+    contributorsByMonthYear$totalContributors <- nrow(contributorData)
+    contributorsByMonthYear$numNewContributors <- 0
+  }
 
   return(contributorsByMonthYear)
 }
 
-#################################################
+
 ## HELPER FUNCTIONS -----------------------------
-#################################################
 
 # Quick search for a PAT that has the term 'github' in it
 .checkGithubPat <- function() {
