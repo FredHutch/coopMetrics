@@ -19,6 +19,10 @@ pullGithub <- function(owner = "FredHutch",
   calcContributorStats(owner = owner,
                        repo = repo,
                        dateRange = dateRange)
+  # Get the number of commits
+  calcCommitNum(owner = owner,
+                repo = repo,
+                dateRange = dateRange)
   return(githubData)
 }
 
@@ -76,10 +80,10 @@ getPaths <- function(owner = "FredHutch",
 
 
 #################################################
-## PULL REPO COMMITS ----------------------------
+## PULL COMMITS ----------------------------
 #################################################
 
-#' This function pulls the the oldest commit date for the specified path.
+#' This function pulls the the oldest commit date for the specified filepath. This can be used to determine when a file was first pushed to the repository.
 #'
 #' @param owner The owner of the repository to pull file paths from.
 #' @param repo The name of the repository to pull file paths from.
@@ -90,59 +94,26 @@ getPaths <- function(owner = "FredHutch",
 #' @export
 #'
 
-pathToOldestCommitDate <- function(owner = owner,
-                                  repo = repo,
-                                  path = path) {
+filepathToOldestCommitDate <- function(owner,
+                                       repo,
+                                       filepath) {
   commitObj <- gh("GET /repos/:owner/:repo/commits",
                   owner = owner,
                   repo = repo,
-                  path = path)
+                  path = filepath)
   commitNum <- length(commitObj)
   oldestCommitDate <- as_date(commitObj[[max(commitNum)]]$commit$author$date)
   return(oldestCommitDate)
 }
 
-#' This function pulls the earliest commit date for each file in a specified path.
-#'
-#' @param owner The owner of the repository to pull file paths from. Defaults to "FredHutch".
-#' @param repo The name of the repository to pull file paths from. Defaults to "coop".
-#' @param path The directory name to pull file paths from. Defaults to "_contributors".
-#' @param ordered A binary parameter. If set to TRUE the dataframe returned will be ordered by newest to oldest file.
-#'
-#' @return a date object of the date that the specified file was first commited to the repository.
-#'
-#' @export
-#'
-listFilesandEarliestCommitDate <- function(owner = "FredHutch",
-                                           repo = "coop",
-                                           path = "_contributors",
-                                           ordered = TRUE) {
-  paths <- getPaths(owner = owner, repo = repo, path = path)
-  fileDateList <- lapply(seq(1:length(paths)), function(i){
-    oldestCommitDate <- pathToOldestCommitDate(owner,
-                                              repo,
-                                              paths[i])
-    resDf <- data.frame(path = paths[i],
-                        commitDate = oldestCommitDate,
-                        stringsAsFactors = FALSE)
-    return(resDf)
-  })
-  # bind into a dataframe
-  fileDateDf <- do.call(rbind.data.frame, fileDateList)
-  if (ordered) {
-    fileDateDf <- fileDateDf[order(fileDateDf$commitDate),]
-
-  }
-
-  return(fileDateDf)
-}
-
-pullCommitNum  <- function(owner,
+calcCommitNum  <- function(owner,
                            repo,
                            dateRange) {
-  start <- min(dateRange)
-  end <- max(dateRange)
-
+  # function only works on full months
+  # adjust dateRange to the first of the start month until the last day of the end month
+  start <- floor_date(min(dateRange), "month")
+  end <- ceiling_date(max(dateRange), "month") - 1
+  # pull commits for the month range specified
   commitObj <- gh("GET /repos/:owner/:repo/commits",
                   owner = "FredHutch",
                   repo = "coop",
@@ -157,6 +128,7 @@ pullCommitNum  <- function(owner,
     map("date") %>%
     flatten_chr() %>%
     as_date()
+
 
   commitsByMonth <- tibble(commitDate = dates) %>%
     mutate(month = floor_date(commitDate, unit = "month")) %>%
@@ -182,11 +154,10 @@ pullCommitNum  <- function(owner,
 #'
 #' @export
 #' @import lubridate
-postsThisMonth <- function(fileNames,
-                           month = NULL,
-                           year = NULL) {
+calcPosts <- function(owner,
+                      repo,
+                      dateRange) {
   ## Pull out month and year if not specified ---
-  monthYear <- paste0(month, "_", year)
   ## get dates from postNames -------------------
   postNamesWrangled <- wranglePostNames(fileNames)
   postNamesWrangled$fileNames <- fileNames
@@ -198,80 +169,6 @@ postsThisMonth <- function(fileNames,
   return(match)
 }
 
-#################################################
-## COMMITS --------------------------------------
-#################################################
-
-#' Get an object of commit activity from a specified repository
-#'
-#' @param owner string of the repository owner. Default "FredHutch".
-#' @param repo string of the repository name. Default "coop".
-#'
-#' @export
-#'
-getCommitActivity <- function(owner = "FredHutch",
-                       repo = "coop") {
-  commitObj <- gh("GET /repos/:owner/:repo/stats/commit_activity",
-                   owner = "FredHutch",
-                   repo = "coop")
-  return(commitObj)
-}
-
-getCommitWeeks <- function(commitObj) {
-  weeksList <- lapply(seq(1:length(commitObj)), function(i) {
-    week <- commitObj[[i]]$week
-    return(week)
-  })
-  weeksVec <- unlist(weeksList)
-  weeksDate <- as_datetime(weeksVec)
-  return(weeksDate)
-}
-
-#' Get an object of commit activity from a specified repository
-#'
-#' @param commitObj Object returned from an `gh` API pull of commit activity.
-#' @param month month to subset object for in `m` format.
-#' @param year year to subset object for in `yyyy` format.
-#'
-#' @return A subsetted commitObj based on the month/year we are gathering information for.
-#'
-#' @export
-#' @import lubridate
-subsetCommitActivityByMonth <- function(commitObj,
-                                        month = month(Sys.Date()),
-                                        year = year(Sys.Date())) {
-  monthYear <- paste(month, year, sep = "_")
-  # get dates from weeksVec
-  weeksVec <- getCommitWeeks(commitObj)
-  # use month and year to create monthsYear
-  months <- month(weeksVec)
-  years <- year(weeksVec)
-  monthsYears <- paste0(months, "_", years)
-  # create logical vector where TRUE = commit weeks to keep
-  toKeep <- monthsYears == monthYear
-  # subset commit object
-  resObj <- commitObj[toKeep]
-
-  return(resObj)
-}
-
-#' Parses an object returned by `getCommitActivity` and calculates the total number of commits that occured during the time frame encapsulated in the object.
-#'
-#' @param commitObj Object returned from an `gh` API pull of commit activity.
-#'
-#' @return The total number of commits
-#'
-#' @export
-#'
-
-calcTotalCommits <- function(commitObj) {
-  totals <- lapply(seq(1:length(commitObj)), function(i){
-    totalNum <- commitObj[[i]]$total
-    return(totalNum)
-  })
-  totals <- unlist(totals)
-  return(sum(totals))
-}
 
 #################################################
 ## CONTRIBUTORS
@@ -306,9 +203,9 @@ pullContributorData <- function(contributorPath,
                                 repo = "coop") {
   # pull earlist commit date for unknown paths
   contributorDates <- contributorPath %>%
-    map_dbl(~ pathToOldestCommitDate(owner = owner,
-                                    repo = repo,
-                                    path = .x)) %>%
+    map_dbl(~ filepathToOldestCommitDate(owner = owner,
+                                         repo = repo,
+                                         path = .x)) %>%
     as_date()
   contributorData <- tibble(path = contributorPath,
                             commitDate = contributorDates,
