@@ -1,6 +1,5 @@
-###################
-## MAIN FUNCTION ##
-###################
+## MAIN FUNCTION --------------------------------------------------------------
+
 #' API pull from
 #'
 #' @param owner The repository name of the relevant GitHub repo.
@@ -33,9 +32,7 @@ pullGithub <- function(owner = "FredHutch",
   return(githubData)
 }
 
-#################################################
-## PULL REPO CONTENTS --------------------------
-#################################################
+## PULL REPO CONTENTS ---------------------------------------------------------
 
 #' Get the names of files from your a specified directory in a github pages repo
 #'
@@ -81,10 +78,7 @@ getPaths <- function(owner = "FredHutch",
   return(path)
 }
 
-
-#################################################
-## PULL COMMITS ----------------------------
-#################################################
+## PULL REPO COMMITS ---------------------------------------------------------------
 
 #' This function pulls the the oldest commit date for the specified filepath. This can be used to determine when a file was first pushed to the repository.
 #'
@@ -109,9 +103,9 @@ filepathToOldestCommitDate <- function(owner,
   return(oldestCommitDate)
 }
 
-calcCommitNum  <- function(owner,
-                           repo,
-                           dateRange) {
+getCommitObj <- function(owner,
+                         repo,
+                         dateRange) {
   # function only works on full months
   # adjust dateRange to the first of the start month until the last day of the end month
   start <- floor_date(min(dateRange), "month")
@@ -122,6 +116,18 @@ calcCommitNum  <- function(owner,
                   repo = "coop",
                   since = start,
                   until = end)
+  return(commitObj)
+}
+
+## COMMITS --------------------------------------------------------------------
+
+calcCommitNum  <- function(owner,
+                           repo,
+                           dateRange) {
+
+  commitObj <- getCommitObj(owner = owner,
+                            dateRange = dateRange,
+                            repo = repo)
   # unnest commitDates from list of lists
   # flatten to a vector
   # coerce to date
@@ -131,8 +137,6 @@ calcCommitNum  <- function(owner,
     map("date") %>%
     flatten_chr() %>%
     as_date()
-
-
   commitsByMonth <- tibble(commitDate = dates) %>%
     mutate(month = floor_date(commitDate, unit = "month")) %>%
     group_by(month) %>%
@@ -141,9 +145,7 @@ calcCommitNum  <- function(owner,
   return(commitsByMonth)
 }
 
-#################################################
-## POSTS ----------------------------------------
-#################################################
+## POSTS ----------------------------------------------------------------------
 
 #' Get the post names of post from the specified month and year (if left unspecified the current month/year is assumed)
 #'
@@ -185,10 +187,7 @@ calcPostNum <- function(owner,
   return(postDf)
 }
 
-
-#################################################
-## CONTRIBUTORS
-#################################################
+## CONTRIBUTORS ---------------------------------------------------------------
 
 #' Given paths from the `_contributors` directory this function will return just the contributor ID.
 #'
@@ -299,8 +298,7 @@ calcContributorNum <- function(owner,
   return(contributorsByMonthYear)
 }
 
-
-## HELPER FUNCTIONS -----------------------------
+## HELPER FUNCTIONS -----------------------------------------------------------
 
 # Quick search for a PAT that has the term 'github' in it
 .checkGithubPat <- function() {
