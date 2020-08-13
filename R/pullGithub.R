@@ -27,8 +27,8 @@ pullGithub <- function(owner = "FredHutch",
                           dateRange = dateRange,
                           by = "postName")
   githubData <- left_join(contributorInfo, commitInfo, by = "month") %>%
-    left_join(., postInfo, by = "month")
-
+    left_join(., postInfo, by = "month") %>%
+    select(month, numCommits, numPostTotal, numNewPosts, totalContributors, numNewContributors, handles)
   return(githubData)
 }
 
@@ -105,7 +105,8 @@ filepathToOldestCommitDate <- function(owner,
 
 getCommitObj <- function(owner,
                          repo,
-                         dateRange) {
+                         dateRange,
+                         pageNum) {
   # function only works on full months
   # adjust dateRange to the first of the start month until the last day of the end month
   start <- floor_date(min(dateRange), "month")
@@ -115,23 +116,37 @@ getCommitObj <- function(owner,
                   owner = "FredHutch",
                   repo = "coop",
                   since = start,
-                  until = end)
+                  until = end,
+                  per_page = 100,
+                  page = pageNum)
   return(commitObj)
 }
 
 ## COMMITS --------------------------------------------------------------------
-
+# FIXME : gh_numCommits doesn't find any commits from months 2020-01 through 05???
 calcCommitNum  <- function(owner,
                            repo,
                            dateRange) {
 
-  commitObj <- getCommitObj(owner = owner,
-                            dateRange = dateRange,
-                            repo = repo)
+  dateRange <- as.POSIXct(dateRange + 1)
+  ## Pull commit object
+  # gh api only returns max of 100 per request
+  # iteratively pull until less than the max are returned
+  commitObj <- NULL
+  commitObjList <- list()
+  i <- 1
+  while (length(commitObj) == 100 | is.null(commitObj)) {
+    commitObj <- getCommitObj(owner = owner,
+                              dateRange = dateRange,
+                              repo = repo,
+                              pageNum = i)
+    commitObjList <- append(commitObjList, commitObj)
+    i <- i + 1
+  }
   # unnest commitDates from list of lists
   # flatten to a vector
   # coerce to date
-  dates <- commitObj %>%
+  dates <- commitObjList %>%
     map("commit") %>%
     map("committer") %>%
     map("date") %>%
@@ -260,8 +275,8 @@ completeMonths <- function(df,
 #' @export
 #'
 calcContributorNum <- function(owner,
-                                 repo,
-                                 dateRange) {
+                               repo,
+                               dateRange) {
   # dateRange to start and end date rounded to the month
   start <- floor_date(min(dateRange), unit = "months")
   end <- ceiling_date(max(dateRange), unit = "months")
@@ -286,14 +301,9 @@ calcContributorNum <- function(owner,
     mutate(month = floor_date(commitDate, unit = "month")) %>%
     calcContributorCommitData() %>%
     completeMonths(dateRange = dateRange) %>%
+    mutate_at("numNewContributors", ~replace(., is.na(.), 0)) %>%
+    mutate(totalContributors = cumsum(numNewContributors)) %>%
     filter(month >= start & month <= end)
-  # if no contributors are added during the date range specified contributorsByMonthYear will be a dataframe filled with
-  # NAs rather than carrying forth the info from previous months. Need to fill it in with the correct info.
-  noTotal <- all(is.na(contributorsByMonthYear$totalContributors))
-  if (noTotal) {
-    contributorsByMonthYear$totalContributors <- nrow(contributorData)
-    contributorsByMonthYear$numNewContributors <- 0
-  }
 
   return(contributorsByMonthYear)
 }
