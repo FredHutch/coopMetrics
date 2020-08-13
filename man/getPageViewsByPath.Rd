@@ -4,16 +4,14 @@
 \alias{getPageViewsByPath}
 \title{Using the Google analytics API pulls page views by page path for the date range specified.}
 \usage{
-getPageViewsByPath(viewId, dateRange, onlyPosts = TRUE, topThree = TRUE)
+getPageViewsByPath(viewId, dateRange, onlyPosts = TRUE)
 }
 \arguments{
 \item{viewId}{A Google Analytics `viewId`. You can find out the webproperty name using `getAccountInfo()` or `ga_account_list()`.}
 
-\item{dateRange}{A vector of two date objects.}
+\item{dateRange}{A vector of two dates.}
 
 \item{onlyPosts}{A binary parameter. If TRUE only returns page path results for posts.}
-
-\item{topThree}{A binary parameter. If TRUE only returns the top three most viewed page paths.}
 }
 \value{
 a dataframe of metrics for the month and year specified.

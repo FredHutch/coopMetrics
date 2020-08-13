@@ -1,62 +1,45 @@
-###################
-## MAIN FUNCTION ##
-###################
-#' API pull from
+## MAIN FUNCTION --------------------------------------------------------------
+
+#' Pull repository statistics for specified GitHub repository. Specifically repositories set up to host a Jekyll/GitHub Pages site.
 #'
 #' @param owner The repository name of the relevant GitHub repo.
 #' @param repo The owner of the relevant GitHub repo.
-#' @param month specify month as `mm` or `m`. Defaults to current month.
-#' @param year specify year as `yyyy`. Defaults to current year.
+#' @param dateRange A vector of two dates.
 #'
-#' @return a dataframe of metrics for the month and year specified.
+#' @return a dataframe of metrics for the date range specified.
 #'
 #' @export
 #' @import lubridate
 pullGithub <- function(owner = "FredHutch",
                        repo = "coop",
-                       month = month(Sys.Date()),
-                       year = year(Sys.Date())) {
-  # Get post information
-  postNames <- getFileNames(owner = owner,
-                            repo = repo,
-                            path = "_posts")
-  posts <- postsThisMonth(postNames,
-                          month = month,
-                          year = year)
-  githubData <- data.frame(postNum = length(posts$date))
-  # get commit info
-  commitObj <- getCommitActivity(owner = owner,
-                                 repo = repo)
-  commitObjOneMonth <- subsetCommitActivityByMonth(commitObj,
-                                                    month = month,
-                                                    year = year)
-  githubData$commitNum <- calcTotalCommits(commitObjOneMonth)
-  # get contributor info
-  contributorDateDf <- listFilesandEarliestCommitDate(owner = owner,
-                                                      repo = repo,
-                                                      path = "_contributors",
-                                                      ordered = TRUE)
-  contributorData <- calcContributorStats(contributorDateDf,
-                                          month = month,
-                                          year= year)
-
-  githubData <- cbind(githubData, contributorData)
-  row.names(githubData) <- paste(month, year, sep = "_")
-
+                       dateRange) {
+  # Get contributor information
+  contributorInfo <- calcContributorNum(owner = owner,
+                                        repo = repo,
+                                        dateRange = dateRange)
+  # Get the number of commits
+  commitInfo <- calcCommitNum(owner = owner,
+                              repo = repo,
+                              dateRange = dateRange)
+  postInfo <- calcPostNum(owner = owner,
+                          repo = repo,
+                          dateRange = dateRange,
+                          by = "postName")
+  githubData <- left_join(contributorInfo, commitInfo, by = "month") %>%
+    left_join(., postInfo, by = "month") %>%
+    select(month, numCommits, numPostTotal, numNewPosts, totalContributors, numNewContributors, handles)
   return(githubData)
 }
 
-#################################################
-## PULL REPO CONTENTS --------------------------
-#################################################
+## PULL REPO CONTENTS ---------------------------------------------------------
 
-#' Get the names of files from your a specified directory in a github pages repo
+#' Get the names of files in a specified directory in a github pages repo
 #'
 #' Uses the `gh` package to pull the file names of files from the specified directory.
 #'
 #' @param owner github pages repo owner. Default = "FredHutch".
 #' @param repo github pages repo name. Default = "coop".
-#' @param path github pages path (including "_") of directory. Default = "_posts".
+#' @param path github pages path (including "_") of directory.
 #'
 #' @return a vector of file names from the specified directory in `path` argument.
 #'
@@ -69,11 +52,7 @@ getFileNames <- function(owner = "FredHutch",
                  owner = owner,
                  repo = repo,
                  path = path)
-
-  fileNames  <- lapply(seq(1:length(fileList)), function(i) {
-    fileName <- fileList[[i]]$name
-    return(fileName)})
-  fileNames <- unlist(fileNames)
+  fileNames <- fileList %>% map_chr("name")
   return(fileNames)
 }
 
@@ -98,203 +77,154 @@ getPaths <- function(owner = "FredHutch",
   return(path)
 }
 
+## PULL REPO COMMITS ---------------------------------------------------------------
 
-#################################################
-## PULL REPO COMMITS ----------------------------
-#################################################
-
-#' This function pulls the the oldest commit date for the specified path.
+#' This function pulls the the oldest commit date for the specified filepath. This can be used to determine when a file was first pushed to the repository.
 #'
 #' @param owner The owner of the repository to pull file paths from.
 #' @param repo The name of the repository to pull file paths from.
-#' @param path The directory name to pull file paths from.
+#' @param filepath The directory name to pull file paths from.
 #'
 #' @return a date object of the date that the specified file was first commited to the repository.
 #'
 #' @export
 #'
 
-pathToOldestCommitDate <- function(owner = owner,
-                                  repo = repo,
-                                  path = path) {
+filepathToOldestCommitDate <- function(owner,
+                                       repo,
+                                       filepath) {
   commitObj <- gh("GET /repos/:owner/:repo/commits",
                   owner = owner,
                   repo = repo,
-                  path = path)
+                  path = filepath)
   commitNum <- length(commitObj)
   oldestCommitDate <- as_date(commitObj[[max(commitNum)]]$commit$author$date)
   return(oldestCommitDate)
 }
 
-#' This function pulls the earliest commit date for each file in a specified path.
-#'
-#' @param owner The owner of the repository to pull file paths from. Defaults to "FredHutch".
-#' @param repo The name of the repository to pull file paths from. Defaults to "coop".
-#' @param path The directory name to pull file paths from. Defaults to "_contributors".
-#' @param ordered A binary parameter. If set to TRUE the dataframe returned will be ordered by newest to oldest file.
+#' Lists commits for specified repository and dateRange. Set to return the max amount per page (100).
+#' @param owner The owner of the repository to pull file paths from.
+#' @param repo The name of the repository to pull file paths from.
+#' @param dateRange A vector of two dates.
+#' @param pageNum Page number of the results to return.
 #'
 #' @return a date object of the date that the specified file was first commited to the repository.
 #'
 #' @export
 #'
-listFilesandEarliestCommitDate <- function(owner = "FredHutch",
-                                           repo = "coop",
-                                           path = "_contributors",
-                                           ordered = TRUE) {
-  paths <- getPaths(owner = owner, repo = repo, path = path)
-  fileDateList <- lapply(seq(1:length(paths)), function(i){
-    oldestCommitDate <- pathToOldestCommitDate(owner,
-                                              repo,
-                                              paths[i])
-    resDf <- data.frame(path = paths[i],
-                        commitDate = oldestCommitDate,
-                        stringsAsFactors = FALSE)
-    return(resDf)
-  })
-  # bind into a dataframe
-  fileDateDf <- do.call(rbind.data.frame, fileDateList)
-  if (ordered) {
-    fileDateDf <- fileDateDf[order(fileDateDf$commitDate),]
-
-  }
-
-  return(fileDateDf)
-}
-
-
-#' When given the output of `listFilesAndEarliestCommitDate()` and a date range this function returns the files that were commited within the specified date range.
-#'
-#' @param fileDateDf The owner of the repository to pull file paths from. Defaults to "FredHutch".
-#' @param first The date object of the beginning of the date range.
-#' @param last The date object of the end of the date range.
-#'
-#' @return vector of files that were first commited to the repository within the specified date range.
-#'
-#' @export
-#'
-
-newFilesWithinDateRange <- function(fileDateDf,
-                                    first,
-                                    last) {
-  newPathsThisMonth <- fileDateDf[fileDateDf$commitDate > first & fileDateDf$commitDate < last, ]
-  return(newPathsThisMonth)
-}
-
-#################################################
-## POSTS ----------------------------------------
-#################################################
-
-#' Get the post names of post from the specified month and year (if left unspecified the current month/year is assumed)
-#'
-#' Gets postNames from month (`m`) and year (`yyyy`) specified
-#'
-#' @param fileNames vector of file names in `yyyy-mm-dd-name.md` format
-#' @param month month to get postNames for in `m` format
-#' @param year year to get postNames for in `yyyy` format
-#'
-#' @return a df of posts names from this months with other variables
-#'
-#' @export
-#' @import lubridate
-postsThisMonth <- function(fileNames,
-                           month = NULL,
-                           year = NULL) {
-  ## Pull out month and year if not specified ---
-  monthYear <- paste0(month, "_", year)
-  ## get dates from postNames -------------------
-  postNamesWrangled <- wranglePostNames(fileNames)
-  postNamesWrangled$fileNames <- fileNames
-  postNamesWrangled$monthYear <- paste0(month(postNamesWrangled$date), "_",
-                                        year(postNamesWrangled$date))
-
-  ## find match ---------------------------------
-  match <- postNamesWrangled[postNamesWrangled$monthYear == monthYear,]
-  return(match)
-}
-
-#################################################
-## COMMITS --------------------------------------
-#################################################
-
-#' Get an object of commit activity from a specified repository
-#'
-#' @param owner string of the repository owner. Default "FredHutch".
-#' @param repo string of the repository name. Default "coop".
-#'
-#' @export
-#'
-getCommitActivity <- function(owner = "FredHutch",
-                       repo = "coop") {
-  commitObj <- gh("GET /repos/:owner/:repo/stats/commit_activity",
-                   owner = "FredHutch",
-                   repo = "coop")
+getCommitObj <- function(owner,
+                         repo,
+                         dateRange,
+                         pageNum) {
+  # function only works on full months
+  # adjust dateRange to the first of the start month until the last day of the end month
+  start <- floor_date(min(dateRange), "month")
+  end <- ceiling_date(max(dateRange), "month") - 1
+  # pull commits for the month range specified
+  commitObj <- gh("GET /repos/:owner/:repo/commits",
+                  owner = "FredHutch",
+                  repo = "coop",
+                  since = start,
+                  until = end,
+                  per_page = 100,
+                  page = pageNum)
   return(commitObj)
 }
 
-getCommitWeeks <- function(commitObj) {
-  weeksList <- lapply(seq(1:length(commitObj)), function(i) {
-    week <- commitObj[[i]]$week
-    return(week)
-  })
-  weeksVec <- unlist(weeksList)
-  weeksDate <- as_datetime(weeksVec)
-  return(weeksDate)
+## COMMITS --------------------------------------------------------------------
+
+#' calculates the number of commits to a given repository over a specified date range.
+#'
+#' @param owner The owner of the repository to pull file paths from.
+#' @param repo The name of the repository to pull file paths from.
+#' @param dateRange A vector of two dates.
+#'
+#' @return a date object of the date that the specified file was first commited to the repository.
+#'
+#' @export
+
+calcCommitNum  <- function(owner,
+                           repo,
+                           dateRange) {
+
+  dateRange <- as.POSIXct(dateRange + 1)
+  ## Pull commit object
+  # gh api only returns max of 100 per request
+  # iteratively pull until less than the max are returned
+  commitObj <- NULL
+  commitObjList <- list()
+  i <- 1
+  while (length(commitObj) == 100 | is.null(commitObj)) {
+    commitObj <- getCommitObj(owner = owner,
+                              dateRange = dateRange,
+                              repo = repo,
+                              pageNum = i)
+    commitObjList <- append(commitObjList, commitObj)
+    i <- i + 1
+  }
+  # unnest commitDates from list of lists
+  # flatten to a vector
+  # coerce to date
+  dates <- commitObjList %>%
+    map("commit") %>%
+    map("committer") %>%
+    map("date") %>%
+    flatten_chr() %>%
+    as_date()
+  commitsByMonth <- tibble(commitDate = dates) %>%
+    mutate(month = floor_date(commitDate, unit = "month")) %>%
+    group_by(month) %>%
+    summarise(numCommits = n())
+
+  return(commitsByMonth)
 }
 
-#' Get an object of commit activity from a specified repository
+## POSTS ----------------------------------------------------------------------
+
+#' Calculate the number of posts per month in a Jekyll/GitHub pages repository.
 #'
-#' @param commitObj Object returned from an `gh` API pull of commit activity.
-#' @param month month to subset object for in `m` format.
-#' @param year year to subset object for in `yyyy` format.
+#' @param owner The owner of the repository to pull file paths from.
+#' @param repo The name of the repository to pull file paths from.
+#' @param dateRange A vector of two dates.
+#' @param by "postNames" is the only option currently. Until I can determine a better way to calculate posts.
 #'
-#' @return A subsetted commitObj based on the month/year we are gathering information for.
+#' @return a dataframe of number of posts per month
 #'
 #' @export
 #' @import lubridate
-subsetCommitActivityByMonth <- function(commitObj,
-                                        month = month(Sys.Date()),
-                                        year = year(Sys.Date())) {
-  monthYear <- paste(month, year, sep = "_")
-  # get dates from weeksVec
-  weeksVec <- getCommitWeeks(commitObj)
-  # use month and year to create monthsYear
-  months <- month(weeksVec)
-  years <- year(weeksVec)
-  monthsYears <- paste0(months, "_", years)
-  # create logical vector where TRUE = commit weeks to keep
-  toKeep <- monthsYears == monthYear
-  # subset commit object
-  resObj <- commitObj[toKeep]
+calcPostNum <- function(owner,
+                        repo,
+                        dateRange,
+                        by = "postName") {
 
-  return(resObj)
+  if (by != "postName") {
+    message("function does not handle other options for `by` at this time")
+  }
+  end <- ceiling_date(max(dateRange), unit = "month") - 1
+  start <- floor_date(min(dateRange), unit = "month")
+
+  # get filenames from "_posts" directory
+  #
+  postDf <- tibble(postNames = getFileNames(owner = owner,
+                                            repo = repo,
+                                            path = "_posts")) %>%
+    mutate(date = as_date(str_sub(postNames, start = 1, end = 10))) %>%
+    mutate(month = floor_date(date, unit = "month")) %>%
+    group_by(month) %>%
+    summarise(numNewPosts = n()) %>%
+    completeMonths(dateRange = dateRange) %>%
+    mutate_at("numNewPosts", ~replace(., is.na(.), 0)) %>%
+    mutate(numPostTotal = cumsum(numNewPosts))%>%
+    filter(month >= start & month <= end)
+
+  return(postDf)
 }
 
-#' Parses an object returned by `getCommitActivity` and calculates the total number of commits that occured during the time frame encapsulated in the object.
-#'
-#' @param commitObj Object returned from an `gh` API pull of commit activity.
-#'
-#' @return The total number of commits
-#'
-#' @export
-#'
+## CONTRIBUTORS ---------------------------------------------------------------
 
-calcTotalCommits <- function(commitObj) {
-  totals <- lapply(seq(1:length(commitObj)), function(i){
-    totalNum <- commitObj[[i]]$total
-    return(totalNum)
-  })
-  totals <- unlist(totals)
-  return(sum(totals))
-}
-
-#################################################
-## CONTRIBUTORS
-#################################################
-
-#' Given paths from the `_contributors` directory this function will return just the contributor ID.
+#' Given a filepath from the `_contributors` directory this function will return just the contributor ID.
 #'
 #' @param contributorPaths A vector of paths from the `_contributors` directory.
-
 #' @return A vector of contributor IDs from the `_contributors` directory.
 #'
 #' @export
@@ -303,6 +233,13 @@ pathToContributor <- function(contributorPaths) {
   id <- gsub("_contributors\\/|.md", "", contributorPaths)
   return(id)
 }
+
+#' Compares current contributor files in repository to known cache of contributors.
+#' @param owner The owner of the repository to pull file paths from.
+#' @param repo The name of the repository to pull file paths from.
+#'
+#' @export
+#'
 
 compareToKnownContributorCache <- function(owner = "FredHutch",
                                            repo = "coop") {
@@ -316,14 +253,22 @@ compareToKnownContributorCache <- function(owner = "FredHutch",
   return(uncachedContributorPath)
 }
 
+#' Gets oldest commit date and handle for provided contributor path for a Jekyll/Github Pages repository.
+#' @param contributorPath A path to a contributor file.
+#' @param owner The owner of the repository to pull file paths from.
+#' @param repo The name of the repository to pull file paths from.
+#'
+#' @export
+#'
+
 pullContributorData <- function(contributorPath,
                                 owner = "FredHutch",
                                 repo = "coop") {
   # pull earlist commit date for unknown paths
   contributorDates <- contributorPath %>%
-    map_dbl(~ pathToOldestCommitDate(owner = owner,
-                                    repo = repo,
-                                    path = .x)) %>%
+    map_dbl(~ filepathToOldestCommitDate(owner = owner,
+                                         repo = repo,
+                                         path = .x)) %>%
     as_date()
   contributorData <- tibble(path = contributorPath,
                             commitDate = contributorDates,
@@ -343,33 +288,34 @@ calcContributorCommitData <- function(contributorData) {
 }
 
 completeMonths <- function(df,
-                           missing = "zero") {
-  completeRange <- tibble(month = seq.Date(from = min(df$month),
-                                           to = max(df$month),
-                                           by = "month"))
+                           dateRange) {
+  completeRange <- tibble(month = seq.Date(from = min(dateRange),
+                                             to = max(dateRange),
+                                             by = "month"))
   completeTbl <- full_join(df, completeRange) %>%
-    arrange(month) %>%
-    mutate_at(c("totalContributors", "numNewContributors"), ~replace(., is.na(.), 0))
-
+    arrange(month)
   return(completeTbl)
 }
 
-#' This function calculates statistics such as the total number of contributors, number of new contributors, and their names for each month in a given date range
+#' This function calculates the number of new contributors and total contributors
 #'
 #' @param owner The owner of the repository that the blog lives in.
 #' @param repo The repository name.
-#' @param dateRange A vector of two date objects indicating the date range of interest.
+#' @param dateRange A vector of two dates.
 #'
 #' @return
 #'
 #' @export
 #'
-calcContributorStats <- function(owner,
-                                 repo,
-                                 dateRange) {
+calcContributorNum <- function(owner,
+                               repo,
+                               dateRange) {
+  # dateRange to start and end date rounded to the month
+  start <- floor_date(min(dateRange), unit = "months")
+  end <- ceiling_date(max(dateRange), unit = "months")
+  # load known contributor cache
   load("R/sysdata.rda")
   contributorData <- knownContributorData
-  contributorData$commitDate <- as_date(contributorData$commitDate)
   # compare known contributors (generated by data-raw/DATA.R and stored in R/sysdata.rda)
   # to unknown contributors (contributors with a file in _contributors but with no data stored in sysdata.rda)
   # known contributor list will be updated as needed and noted as a new version of the package.
@@ -379,19 +325,23 @@ calcContributorStats <- function(owner,
     uncachedContributorData <- pullContributorData(uncachedContributorPath, owner = owner, repo = repo)
     contributorData <- bind_rows(contributorData, uncachedContributorData)
   }
+  # take contributorData
+  # mutate commitDate to month (yyyy-mm-01)
+  # calls function calcContributorCommitData
+  # filter output by dateRange provided
+  # fill in missing months with zeros
   contributorsByMonthYear <-  contributorData %>%
     mutate(month = floor_date(commitDate, unit = "month")) %>%
     calcContributorCommitData() %>%
-    filter(month > min(dateRange) & month < max(dateRange)) %>%
-    completeMonths()
+    completeMonths(dateRange = dateRange) %>%
+    mutate_at("numNewContributors", ~replace(., is.na(.), 0)) %>%
+    mutate(totalContributors = cumsum(numNewContributors)) %>%
+    filter(month >= start & month <= end)
 
   return(contributorsByMonthYear)
+}
 
-  }
-
-#################################################
-## HELPER FUNCTIONS -----------------------------
-#################################################
+## HELPER FUNCTIONS -----------------------------------------------------------
 
 # Quick search for a PAT that has the term 'github' in it
 .checkGithubPat <- function() {
