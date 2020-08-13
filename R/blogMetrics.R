@@ -3,8 +3,7 @@
 #' @param webPropertyName A variable from GoogleAnalytics. You can find out the webproperty name using `ga_account_list()` form the `GoogleAnalyticsR` package.
 #' @param owner The owner of the relevant GitHub repo.
 #' @param repo The repository name of the relevant GitHub repo.
-#' @param month specify month as `mm` or `m`. Defaults to current month.
-#' @param year specify year as `yyyy`. Defaults to current year.
+#' @param dateRange
 #'
 #' @return a dataframe of metrics for the month and year specified.
 #'
@@ -12,21 +11,16 @@
 getBlogStatistics <- function(webPropertyName,
                               owner,
                               repo,
-                              month = month(Sys.Date()),
-                              year = year(Sys.Date())) {
+                              dateRange) {
   # pull google analytics data
-  gaData <- pullGoogleAnalytics(webPropertyName,
-                                month = month,
-                                year = year,
-                                .metrics = c("users", "newUsers", "sessions", "pageviews"),
-                                .topPosts = TRUE)
+  gaData <- pullGoogleAnalytics(webPropertyName = webPropertyName,
+                                dateRange = dateRange)
   # pull github data
   ghData <- pullGithub(owner = owner,
                        repo = repo,
-                       month = month,
-                       year = year)
-  data <- cbind(ghData, gaData)
-  names(data) <- c(paste0("gh_", names(ghData)),
-                   paste0("ga_", names(gaData)))
+                       dateRange = dateRange)
+  names(ghData)[-1] <- paste0("gh_", names(ghData)[-1])
+  names(gaData)[-1] <- paste0("ga_", names(gaData)[-1])
+  data <- left_join(ghData, gaData, by = "month")
   return(data)
 }
