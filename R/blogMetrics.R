@@ -1,9 +1,9 @@
-#' Pulls basic blog statistics for blogs using the GitHub Pages directory structure from both GitHub and Google Analytics.
+#' Pulls blog statistics for blogs using the GitHub Pages directory structure from both GitHub and Google Analytics.
 #'
 #' @param webPropertyName A variable from GoogleAnalytics. You can find out the webproperty name using `ga_account_list()` form the `GoogleAnalyticsR` package.
 #' @param owner The owner of the relevant GitHub repo.
 #' @param repo The repository name of the relevant GitHub repo.
-#' @param dateRange
+#' @param dateRange A vector of two dates.
 #'
 #' @return a dataframe of metrics for the month and year specified.
 #'

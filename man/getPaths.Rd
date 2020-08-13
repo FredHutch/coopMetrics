@@ -4,7 +4,7 @@
 \alias{getPaths}
 \title{Given the repository owner and name and a specific path within that repo this function will return a vector of filepaths within that directory.}
 \usage{
-getPaths(owner = "FredHutch", repo = "coop", path = "_contributors")
+getPaths(owner = "FredHutch", repo = "coop", path = NULL)
 }
 \arguments{
 \item{owner}{The owner of the repository to pull file paths from. Defaults to "FredHutch".}

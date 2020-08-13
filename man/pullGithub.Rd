@@ -2,27 +2,20 @@
 % Please edit documentation in R/pullGithub.R
 \name{pullGithub}
 \alias{pullGithub}
-\title{API pull from}
+\title{Pull repository statistics for specified GitHub repository. Specifically repositories set up to host a Jekyll/GitHub Pages site.}
 \usage{
-pullGithub(
-  owner = "FredHutch",
-  repo = "coop",
-  month = month(Sys.Date()),
-  year = year(Sys.Date())
-)
+pullGithub(owner = "FredHutch", repo = "coop", dateRange)
 }
 \arguments{
 \item{owner}{The repository name of the relevant GitHub repo.}
 
 \item{repo}{The owner of the relevant GitHub repo.}
 
-\item{month}{specify month as `mm` or `m`. Defaults to current month.}
-
-\item{year}{specify year as `yyyy`. Defaults to current year.}
+\item{dateRange}{A vector of two dates.}
 }
 \value{
-a dataframe of metrics for the month and year specified.
+a dataframe of metrics for the date range specified.
 }
 \description{
-API pull from
+Pull repository statistics for specified GitHub repository. Specifically repositories set up to host a Jekyll/GitHub Pages site.
 }

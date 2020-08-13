@@ -1,12 +1,11 @@
 ## MAIN FUNCTION --------------------------------------------------------------
 
-#' API pull from both Google Analytics and GitHub specifically for a GitHub pages website build using Jekyll.
+#' API pull from both Google Analytics.
 #'
 #' @param webPropertyName A variable from GoogleAnalytics. You can find out the webproperty name using `ga_account_list()`
-#' @param month specify month as `mm` or `m`. Defaults to current month.
-#' @param year specify year as `yyyy`. Defaults to current year.
+#' @param dateRange A vector of two dates.
 #'
-#' @return a dataframe of metrics for the month and year specified.
+#' @return a dataframe of monthly metrics from the date range specified.
 #'
 #' @export
 #' @import lubridate
@@ -31,9 +30,8 @@ pullGoogleAnalytics <- function(webPropertyName,
 #' Given a Google Analytics `webPropertyName` this function will pull the corresponding GoogleAnalytics account information
 #'
 #' @param webPropertyName a Google Analytics `webPropertyName`. You can find out the webproperty name using `ga_account_list()`.
-#' @param year specify year as `yyyy`. Defaults to current year.
 #'
-#' @return a dataframe of metrics for the month and year specified.
+#' @return The view ID that corrosponds with the provided webPropertyName
 #'
 #' @export
 
@@ -52,6 +50,14 @@ webPropertyNameToViewId <- function(webPropertyName) {
 
 ## PULL USER / SESSIONS -------------------------------------------------------
 
+#' Given a  view ID and dateRange this function will pull the number of `users`, `newUsers`, `sessions`, and `pageviews` by month.
+#'
+#' @param viewId a Google Analytics `viewId`.
+#' @param dateRange A vector of two dates.
+
+#' @return The view ID that corrosponds with the provided webPropertyName
+#'
+#' @export
 getUserSessionData <- function(viewId,
                                dateRange) {
   start <- floor_date(min(dateRange), unit = "month")
@@ -72,9 +78,8 @@ getUserSessionData <- function(viewId,
 #' Using the Google analytics API pulls page views by page path for the date range specified.
 #'
 #' @param viewId A Google Analytics `viewId`. You can find out the webproperty name using `getAccountInfo()` or `ga_account_list()`.
-#' @param dateRange A vector of two date objects.
+#' @param dateRange A vector of two dates.
 #' @param onlyPosts A binary parameter. If TRUE only returns page path results for posts.
-#' @param topThree A binary parameter. If TRUE only returns the top three most viewed page paths.
 
 #' @return a dataframe of metrics for the month and year specified.
 #'
@@ -92,7 +97,7 @@ getPageViewsByPath <- function(viewId,
                                 dimensions = c("pagePath", "month", "year"))
   # subset
   if (onlyPosts) {
-    pageViews <- keepPostsOnly(pageViews = pageViews,
+    pageViews <- .keepPostsOnly(pageViews = pageViews,
                                subPagesToRemove = c("^/coop/$", "/calendar/",
                                                       "/contributors/", "/posts/",
                                                       "/tags/", "/about/",
@@ -108,7 +113,7 @@ getPageViewsByPath <- function(viewId,
   return(topPagesByMonth)
 }
 
-keepPostsOnly <- function(pageViews, subPagesToRemove) {
+.keepPostsOnly <- function(pageViews, subPagesToRemove) {
   pattern <- paste(subPagesToRemove, collapse = "|")
   pageViews <- pageViews[!grepl(pattern, pageViews$pagePath, ),]
   # Order by most viewed to least

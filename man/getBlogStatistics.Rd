@@ -2,15 +2,9 @@
 % Please edit documentation in R/blogMetrics.R
 \name{getBlogStatistics}
 \alias{getBlogStatistics}
-\title{Pulls basic blog statistics for blogs using the GitHub Pages directory structure from both GitHub and Google Analytics.}
+\title{Pulls blog statistics for blogs using the GitHub Pages directory structure from both GitHub and Google Analytics.}
 \usage{
-getBlogStatistics(
-  webPropertyName,
-  owner,
-  repo,
-  month = month(Sys.Date()),
-  year = year(Sys.Date())
-)
+getBlogStatistics(webPropertyName, owner, repo, dateRange)
 }
 \arguments{
 \item{webPropertyName}{A variable from GoogleAnalytics. You can find out the webproperty name using `ga_account_list()` form the `GoogleAnalyticsR` package.}
@@ -19,13 +13,11 @@ getBlogStatistics(
 
 \item{repo}{The repository name of the relevant GitHub repo.}
 
-\item{month}{specify month as `mm` or `m`. Defaults to current month.}
-
-\item{year}{specify year as `yyyy`. Defaults to current year.}
+\item{dateRange}{A vector of two dates.}
 }
 \value{
 a dataframe of metrics for the month and year specified.
 }
 \description{
-Pulls basic blog statistics for blogs using the GitHub Pages directory structure from both GitHub and Google Analytics.
+Pulls blog statistics for blogs using the GitHub Pages directory structure from both GitHub and Google Analytics.
 }

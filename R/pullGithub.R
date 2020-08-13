@@ -1,13 +1,12 @@
 ## MAIN FUNCTION --------------------------------------------------------------
 
-#' API pull from
+#' Pull repository statistics for specified GitHub repository. Specifically repositories set up to host a Jekyll/GitHub Pages site.
 #'
 #' @param owner The repository name of the relevant GitHub repo.
 #' @param repo The owner of the relevant GitHub repo.
-#' @param month specify month as `mm` or `m`. Defaults to current month.
-#' @param year specify year as `yyyy`. Defaults to current year.
+#' @param dateRange A vector of two dates.
 #'
-#' @return a dataframe of metrics for the month and year specified.
+#' @return a dataframe of metrics for the date range specified.
 #'
 #' @export
 #' @import lubridate
@@ -34,7 +33,7 @@ pullGithub <- function(owner = "FredHutch",
 
 ## PULL REPO CONTENTS ---------------------------------------------------------
 
-#' Get the names of files from your a specified directory in a github pages repo
+#' Get the names of files in a specified directory in a github pages repo
 #'
 #' Uses the `gh` package to pull the file names of files from the specified directory.
 #'
@@ -84,7 +83,7 @@ getPaths <- function(owner = "FredHutch",
 #'
 #' @param owner The owner of the repository to pull file paths from.
 #' @param repo The name of the repository to pull file paths from.
-#' @param path The directory name to pull file paths from.
+#' @param filepath The directory name to pull file paths from.
 #'
 #' @return a date object of the date that the specified file was first commited to the repository.
 #'
@@ -103,6 +102,16 @@ filepathToOldestCommitDate <- function(owner,
   return(oldestCommitDate)
 }
 
+#' Lists commits for specified repository and dateRange. Set to return the max amount per page (100).
+#' @param owner The owner of the repository to pull file paths from.
+#' @param repo The name of the repository to pull file paths from.
+#' @param dateRange A vector of two dates.
+#' @param pageNum Page number of the results to return.
+#'
+#' @return a date object of the date that the specified file was first commited to the repository.
+#'
+#' @export
+#'
 getCommitObj <- function(owner,
                          repo,
                          dateRange,
@@ -123,7 +132,17 @@ getCommitObj <- function(owner,
 }
 
 ## COMMITS --------------------------------------------------------------------
-# FIXME : gh_numCommits doesn't find any commits from months 2020-01 through 05???
+
+#' calculates the number of commits to a given repository over a specified date range.
+#'
+#' @param owner The owner of the repository to pull file paths from.
+#' @param repo The name of the repository to pull file paths from.
+#' @param dateRange A vector of two dates.
+#'
+#' @return a date object of the date that the specified file was first commited to the repository.
+#'
+#' @export
+
 calcCommitNum  <- function(owner,
                            repo,
                            dateRange) {
@@ -162,15 +181,14 @@ calcCommitNum  <- function(owner,
 
 ## POSTS ----------------------------------------------------------------------
 
-#' Get the post names of post from the specified month and year (if left unspecified the current month/year is assumed)
+#' Calculate the number of posts per month in a Jekyll/GitHub pages repository.
 #'
-#' Gets postNames from month (`m`) and year (`yyyy`) specified
+#' @param owner The owner of the repository to pull file paths from.
+#' @param repo The name of the repository to pull file paths from.
+#' @param dateRange A vector of two dates.
+#' @param by "postNames" is the only option currently. Until I can determine a better way to calculate posts.
 #'
-#' @param fileNames vector of file names in `yyyy-mm-dd-name.md` format
-#' @param month month to get postNames for in `m` format
-#' @param year year to get postNames for in `yyyy` format
-#'
-#' @return a df of posts names from this months with other variables
+#' @return a dataframe of number of posts per month
 #'
 #' @export
 #' @import lubridate
@@ -204,7 +222,7 @@ calcPostNum <- function(owner,
 
 ## CONTRIBUTORS ---------------------------------------------------------------
 
-#' Given paths from the `_contributors` directory this function will return just the contributor ID.
+#' Given a filepath from the `_contributors` directory this function will return just the contributor ID.
 #'
 #' @param contributorPaths A vector of paths from the `_contributors` directory.
 #' @return A vector of contributor IDs from the `_contributors` directory.
@@ -215,6 +233,13 @@ pathToContributor <- function(contributorPaths) {
   id <- gsub("_contributors\\/|.md", "", contributorPaths)
   return(id)
 }
+
+#' Compares current contributor files in repository to known cache of contributors.
+#' @param owner The owner of the repository to pull file paths from.
+#' @param repo The name of the repository to pull file paths from.
+#'
+#' @export
+#'
 
 compareToKnownContributorCache <- function(owner = "FredHutch",
                                            repo = "coop") {
@@ -227,6 +252,14 @@ compareToKnownContributorCache <- function(owner = "FredHutch",
   uncachedContributorPath <- setdiff(contributors, knownContributorData$path)
   return(uncachedContributorPath)
 }
+
+#' Gets oldest commit date and handle for provided contributor path for a Jekyll/Github Pages repository.
+#' @param contributorPath A path to a contributor file.
+#' @param owner The owner of the repository to pull file paths from.
+#' @param repo The name of the repository to pull file paths from.
+#'
+#' @export
+#'
 
 pullContributorData <- function(contributorPath,
                                 owner = "FredHutch",
@@ -264,11 +297,11 @@ completeMonths <- function(df,
   return(completeTbl)
 }
 
-#' This function calculates statistics such as the total number of contributors, number of new contributors, and their names for each month in a given date range
+#' This function calculates the number of new contributors and total contributors
 #'
 #' @param owner The owner of the repository that the blog lives in.
 #' @param repo The repository name.
-#' @param dateRange A vector of two date objects indicating the date range of interest.
+#' @param dateRange A vector of two dates.
 #'
 #' @return
 #'

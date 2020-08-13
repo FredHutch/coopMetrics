@@ -2,26 +2,18 @@
 % Please edit documentation in R/pullGoogleAnalytics.R
 \name{pullGoogleAnalytics}
 \alias{pullGoogleAnalytics}
-\title{API pull from both Google Analytics and GitHub specifically for a GitHub pages website build using Jekyll.}
+\title{API pull from both Google Analytics.}
 \usage{
-pullGoogleAnalytics(
-  webPropertyName,
-  month = month(Sys.Date()),
-  year = year(Sys.Date()),
-  .metrics = c("users", "newUsers", "sessions", "pageviews"),
-  .topPosts = TRUE
-)
+pullGoogleAnalytics(webPropertyName, dateRange)
 }
 \arguments{
 \item{webPropertyName}{A variable from GoogleAnalytics. You can find out the webproperty name using `ga_account_list()`}
 
-\item{month}{specify month as `mm` or `m`. Defaults to current month.}
-
-\item{year}{specify year as `yyyy`. Defaults to current year.}
+\item{dateRange}{A vector of two dates.}
 }
 \value{
-a dataframe of metrics for the month and year specified.
+a dataframe of monthly metrics from the date range specified.
 }
 \description{
-API pull from both Google Analytics and GitHub specifically for a GitHub pages website build using Jekyll.
+API pull from both Google Analytics.
 }
