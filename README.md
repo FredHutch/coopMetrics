@@ -22,7 +22,7 @@ Currently there is one main function that pulls pre-set metrics from both GitHub
 getBlogData(webPropertyName = "Coop blog",
             owner = "FredHutch",
             repo = "coop",
-            dateRange = c(ymd("2020-01-01"), ymd("2020-05-30")))
+            dateRange = c(ymd("2020-01-01"), ymd("2020-03-30")))
                               
 ```
 And output is the table below. Returning a dataframe of the specified months metrics.
@@ -30,7 +30,9 @@ And output is the table below. Returning a dataframe of the specified months met
 
 | month | gh_numCommits | gh_numPostTotal | gh_numNewPosts | gh_totalContributor | gh_numNewContributor | gh_handles | ga_users | ga_newUsers | ga_sessions | ga_pageviews | ga_mostViewed |
 |-|-|-|-|-|-|-|-|-|-|-|-|
-| 2020-01-01  | 96 | 8 | 6 | 4 | 1 | carly | 92 | 163 | 970 | /coop/community/another-transition/; /coop/community/science/uw-capstone-collaboration/; /coop/community/technical/nextflow/ |
+| 2020-01-01  | 96 | 8 | 6 | 4 | 1 | carly | 92 | 83 | 163 | 970 | /coop/community/another-transition/; /coop/community/science/uw-capstone-collaboration/; /coop/community/technical/nextflow/ |
+| 2020-02-01  | 50 | 12 | 4 | 4 | 0 | NA | 115 | 97 | 166 | 491 | "/coop/community/technical/nextflow/; /coop/community/online-training/; /coop/community/technical/rstudio-conf2020/" |
+| 2020-03-01  | 42 | 17 | 5 | 5 | 1 | lwolfe | 184 | 160 | 301 | 675 | "/coop/community/wfh-tips/; /coop/community/remote-teamwork/; /coop/community/ms-teams/" |
 
 Right now the metrics include:
 
