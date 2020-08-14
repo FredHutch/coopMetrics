@@ -58,15 +58,15 @@ The main function `getBlogData()` works by calling `pullGoogleAnalytics()` and `
 
 The Google Analytics side of things is fairly straight forward. It uses the function `ga_auth()` to get the users Google login info. Then it converts the provided `webPropertyId` to a `viewId` and pulls the relevant data using `google_analytics()`. Since we want to pull monthly statistics we are able to use the dimensions parameter set to `month` and `year`.
 
-See documentation about `GoogleAnalyticsR` [here](https://code.markedmondson.me/googleAnalyticsR/)
-See documentation about the Google Analytics API [here](https://developers.google.com/analytics/devguides/reporting/core/v4)
+* See documentation about `GoogleAnalyticsR` [here](https://code.markedmondson.me/googleAnalyticsR/)
+* See documentation about the Google Analytics API [here](https://developers.google.com/analytics/devguides/reporting/core/v4)
 
 The GitHub data is a little less straightforward. We specifically make use of the [`repos endpoint`](https://docs.github.com/en/rest/overview/endpoints-available-for-github-apps#repos) to list information about repository contents and commits. The package makes use of the `usethis` package to cache data about known collaborators. You can check out the data generation script [here](../data-raw/DATA.R).
 
-See documentation about the `gh` package [here](https://github.com/r-lib/gh)
-See documentation about the GitHub REST API [here](https://docs.github.com/en/rest)
+* See documentation about the `gh` package [here](https://github.com/r-lib/gh)
+* See documentation about the GitHub REST API [here](https://docs.github.com/en/rest)
 
 
 ## Notes
 
-* Please note that this package is in very early developement and there are currently no tests. USE WITH CAUTION LOL.
+*Please note that this package is in very early developement and there are currently no tests. USE WITH CAUTION LOL.*
