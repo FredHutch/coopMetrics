@@ -11,22 +11,26 @@ devtools::install_github(repo = "FredHutch/coopMetrics",
 ## Usage
 ```
 library(coopMetrics)
+## Not sure if the package will auto load all the required dependency packages just yet
+library(gh)
+library(googleAnalyticsR)
+library(googleAuthR)
+library(tidyverse)
 ```
 Currently there is one main function that pulls pre-set metrics from both GitHub and Google Analytics. Below is an code chunk showing how to use this function using [the Coop Blog's repository](https://github.com/FredHutch/coop) as an example. 
 ```
-getBlogStatistics(webPropertyName = "Coop blog",
-                  owner = "FredHutch",
-                  repo = "coop",
-                  month = month(Sys.Date()),
-                  year = year(Sys.Date()))
+getBlogData(webPropertyName = "Coop blog",
+            owner = "FredHutch",
+            repo = "coop",
+            dateRange = c(ymd("2020-01-01"), ymd("2020-05-30")))
                               
 ```
 And output is the table below. Returning a dataframe of the specified months metrics.
 
 
-|         | gh_postNum | gh_commitNum | gh_numTotalContributors | gh_numNewContributors | gh_newContributorNames | ga_users | ga_newUsers | ga_sessions | ga_pageviews | ga_topPages |
-|---------|------------|--------------|-------------------------|-----------------------|------------------------|----------|-------------|-------------|-----------|---------|
-| 7_2020  | 0          | 1            | 8                       | 0                     |                        | 37       | 33          | 46          | 85                      | /coop/community/another-transition/; /coop/community/science/uw-capstone-collaboration/; /coop/community/technical/nextflow/ |
+| month | gh_numCommits | gh_numPostTotal | gh_numNewPosts | gh_totalContributor | gh_numNewContributor | gh_handles | ga_users | ga_newUsers | ga_sessions | ga_pageviews | ga_mostViewed |
+|-|-|-|-|-|-|-|-|-|-|-|-|
+| 2020-01-01  | 96 | 8 | 6 | 4 | 1 | carly | 92 | 163 | 970 | /coop/community/another-transition/; /coop/community/science/uw-capstone-collaboration/; /coop/community/technical/nextflow/ |
 
 Right now the metrics include:
 
