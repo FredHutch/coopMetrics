@@ -54,8 +54,6 @@ Columns with the prefix `gh` are pulled from GitHub and columns with the prefix 
 
 ## Whats going on under the hood
 
-The main function `getBlogData()` works by calling `pullGoogleAnalytics()` and `pullGithub()`. 
-
 The Google Analytics side of things is fairly straight forward. It uses the function `ga_auth()` to get the users Google login info. Then it converts the provided `webPropertyId` to a `viewId` and pulls the relevant data using `google_analytics()`. Since we want to pull monthly statistics we are able to use the dimensions parameter set to `month` and `year`.
 
 * See documentation about `GoogleAnalyticsR` [here](https://code.markedmondson.me/googleAnalyticsR/)
