@@ -268,7 +268,7 @@ pullContributorData <- function(contributorPath,
   contributorDates <- contributorPath %>%
     map_dbl(~ filepathToOldestCommitDate(owner = owner,
                                          repo = repo,
-                                         path = .x)) %>%
+                                         filepath = .x)) %>%
     as_date()
   contributorData <- tibble(path = contributorPath,
                             commitDate = contributorDates,
