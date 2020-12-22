@@ -1,15 +1,54 @@
-library(coopMetrics)
+## LOAD LIBRARY -------------------------------------------------------------------------
+library(lubridate)
+library(tidyverse)
+library(gh)
+library(googleAnalyticsR)
 
-# Set variables
+## SOURCE SCRIPTS -----------------------------------------------------------------------
+sourceScripts <- TRUE # toggle between using .R scripts to source functions or loading the coopMetrics library
+
+if(sourceScripts) {
+  path <- file.path(here::here(), "R")
+  scripts <- list.files(path, pattern = "R", full.names = TRUE)
+  lapply(scripts, source)
+} else {
+  library(coopMetrics)
+}
+
+## SET VARIABLES ------------------------------------------------------------------------
+webPropertyName <- "Coop blog"
 owner <- "FredHutch"
 repo <- "coop"
+monthsAgo <- 12 # values is the number of months back we want to collect data from
+begin <- ymd(Sys.Date()) - months(monthsAgo)
+end <- ymd(Sys.Date())
+dateRange <- c(begin, end)
 
-# Code to prepare known contributor dataset
-knownContributorData <- listFilesandEarliestCommitDate(owner = owner,
-                                                       repo = repo,
-                                                       path = "_contributors",
-                                                       ordered = TRUE)
-knownContributorData$handle <- pathToContributor(knownContributorData$path)
-cacheDate <- Sys.time()
+## PREPARE KNOWN CONTRIBUTOR DATA -------------------------------------------------------
+load("R/sysdata.rda") # loads knownContributorData
+uncachedContributor <- getUncachedContributorPath(owner = owner,
+                                                  repo = repo)
+uncachedContributorData <- pullContributorData(uncachedContributor,
+                                               owner = owner,
+                                               repo = repo)
+updatedContributorData <- bind_rows(knownContributorData, uncachedContributorData)
 
-usethis::use_data(knownContributorData, cacheDate, internal = TRUE, overwrite = TRUE)
+## PREPARE BLOG DATA --------------------------------------------------------------------
+blogMetrics <- getBlogStatistics(webPropertyName = webPropertyName,
+                                 owner = owner,
+                                 repo = repo,
+                                 dateRange = dateRange)
+
+
+
+
+
+
+
+
+
+
+
+
+
+usethis::use_data(updatedContributorData, cacheDate, internal = TRUE, overwrite = TRUE)
