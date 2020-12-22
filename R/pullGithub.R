@@ -38,7 +38,7 @@ pullGithub <- function(owner = "FredHutch",
 #'
 #' @param owner The GitHub repository owner
 #' @param repo The GitHub repository name
-#' @param dateRange A vector of two dates in dd-mm-yyyy format. Can be strings or date objects. Order doesn't matter, the max and min will be used.
+#' @param dateRange A vector of two dates in yyyy-mm-dd format. Can be strings or date objects. Order doesn't matter, the max and min will be used.
 #'
 #' @return a date object of the date that the specified file was first commited to the repository.
 #'
@@ -49,7 +49,7 @@ calcCommitNum  <- function(owner,
                            dateRange) {
   # check dateRange format and update to date if needed
   if (is.Date(dateRange) == FALSE) {
-    dateRange <- dmy(dateRange)
+    dateRange <- ymd(dateRange)
   }
   ## Pull commit object
   commitObjList <- getCommits(owner, repo, dateRange)
@@ -76,7 +76,7 @@ calcCommitNum  <- function(owner,
 #'
 #' @param owner The GitHub repository owner
 #' @param repo The GitHub repository name
-#' @param dateRange A vector of two dates in dd-mm-yyyy format. Can be strings or date objects. Order doesn't matter, the max and min will be used.
+#' @param dateRange A vector of two dates in yyyy-mm-dd format. Can be strings or date objects. Order doesn't matter, the max and min will be used.
 #' @param by "postNames" is the only option currently. Until I can determine a better way to calculate posts.
 #'
 #' @return a dataframe of number of posts per month
@@ -88,7 +88,7 @@ calcPostNum <- function(owner,
                         dateRange) {
   #check date
   if (is.Date(dateRange) == FALSE) {
-    dateRange <- dmy(dateRange)
+    dateRange <- ymd(dateRange)
   }
 
   end <- ceiling_date(max(dateRange), unit = "month") - 1
@@ -149,7 +149,7 @@ calcContributorCommitData <- function(contributorData) {
 #'
 #' @param owner The owner of the repository that the blog lives in.
 #' @param repo The repository name.
-#' @param dateRange A vector of two dates.
+#' @param dateRange A vector of two dates in yyyy-mm-dd format. Can be strings or date objects. Order doesn't matter, the max and min will be used.
 #'
 #' @return
 #'
@@ -159,7 +159,7 @@ calcContributorNum <- function(owner,
                                repo,
                                dateRange) {
   if (is.Date(dateRange) == FALSE) {
-    dateRange <- dmy(dateRange)
+    dateRange <- ymd(dateRange)
   }
   # dateRange to start and end date rounded to the month
   start <- floor_date(min(dateRange), unit = "months")
@@ -199,7 +199,7 @@ calcContributorNum <- function(owner,
 #' Lists commits for specified repository and dateRange. Set to return the max amount per page (100).
 #' @param owner The GitHub repository owner
 #' @param repo The GitHub repository name
-#' @param dateRange A vector of two dates in dd-mm-yyyy format. Can be strings or date objects. Order doesn't matter, the max and min will be used.
+#' @param dateRange A vector of two dates in yyyy-mm-dd format. Can be strings or date objects. Order doesn't matter, the max and min will be used.
 #' @param pageNum Page number of the results to return
 #'
 #' @return
@@ -211,7 +211,7 @@ getCommitObj <- function(owner,
                          pageNum) {
   # check that dateRange is in correct format
   if (is.Date(dateRange) == FALSE) {
-    dateRange <- dmy(dateRange)
+    dateRange <- ymd(dateRange)
   }
   # function only works on full months
   # adjust dateRange to the first of the start month until the last day of the end month

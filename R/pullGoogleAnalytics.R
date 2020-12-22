@@ -3,7 +3,7 @@
 #' API pull from both Google Analytics.
 #'
 #' @param webPropertyName A variable from GoogleAnalytics. You can find out the webproperty name using `ga_account_list()`
-#' @param dateRange A vector of two dates.
+#' @param dateRange A vector of two dates in yyyy-mm-dd format. Can be strings or date objects. Order doesn't matter, the max and min will be used.
 #'
 #' @return a dataframe of monthly metrics from the date range specified.
 #'
@@ -54,7 +54,7 @@ webPropertyNameToViewId <- function(webPropertyName) {
 #' Given a  view ID and dateRange this function will pull the number of `users`, `newUsers`, `sessions`, and `pageviews` by month.
 #'
 #' @param viewId a Google Analytics `viewId`.
-#' @param dateRange A vector of two dates in dd-mm-yyyy format. Can be strings or date objects. Order doesn't matter, the max and min will be used.
+#' @param dateRange A vector of two dates in yyyy-mm-dd format. Can be strings or date objects. Order doesn't matter, the max and min will be used.
 
 #' @return The view ID that corrosponds with the provided webPropertyName
 #'
@@ -62,7 +62,7 @@ webPropertyNameToViewId <- function(webPropertyName) {
 getUserSessionData <- function(viewId,
                                dateRange) {
   if (is.Date(dateRange) == FALSE) {
-    dateRange <- dmy(dateRange)
+    dateRange <- ymd(dateRange)
   }
   start <- floor_date(min(dateRange), unit = "month")
   end <- ceiling_date(max(dateRange), unit = "month") -1
@@ -82,7 +82,7 @@ getUserSessionData <- function(viewId,
 #' Using the Google analytics API pulls page views by page path for the date range specified.
 #'
 #' @param viewId A Google Analytics `viewId`. You can find out the webproperty name using `getAccountInfo()` or `ga_account_list()`.
-#' @param dateRange A vector of two dates in dd-mm-yyyy format. Can be strings or date objects. Order doesn't matter, the max and min will be used.
+#' @param dateRange A vector of two dates in yyyy-mm-dd format. Can be strings or date objects. Order doesn't matter, the max and min will be used.
 #' @param onlyPosts A binary parameter. If TRUE only returns page path results for posts.
 
 #' @return a dataframe of metrics for the month and year specified.
@@ -93,7 +93,7 @@ getPageViewsByPath <- function(viewId,
                                dateRange,
                                onlyPosts = TRUE){
   if (is.Date(dateRange) == FALSE) {
-    dateRange <- dmy(dateRange)
+    dateRange <- ymd(dateRange)
   }
   start <- floor_date(min(dateRange), unit = "month")
   end <- ceiling_date(max(dateRange), unit = "month") -1
