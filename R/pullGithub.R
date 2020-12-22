@@ -23,8 +23,7 @@ pullGithub <- function(owner = "FredHutch",
                               dateRange = dateRange)
   postInfo <- calcPostNum(owner = owner,
                           repo = repo,
-                          dateRange = dateRange,
-                          by = "postName")
+                          dateRange = dateRange)
   githubData <- left_join(contributorInfo, commitInfo, by = "month") %>%
     left_join(., postInfo, by = "month") %>%
     select(month, numCommits, numPostTotal, numNewPosts, totalContributors, numNewContributors, handles)
