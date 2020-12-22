@@ -39,16 +39,5 @@ blogMetrics <- getBlogStatistics(webPropertyName = webPropertyName,
                                  repo = repo,
                                  dateRange = dateRange)
 
-
-
-
-
-
-
-
-
-
-
-
-
-usethis::use_data(updatedContributorData, cacheDate, internal = TRUE, overwrite = TRUE)
+## SAVE DATA ----------------------------------------------------------------------------
+usethis::use_data(updatedContributorData, cacheDate, blogMetrics, internal = TRUE, overwrite = TRUE)
