@@ -33,3 +33,11 @@ getBlogStatistics <- function(webPropertyName,
   data <- left_join(ghData, gaData, by = "month")
   return(data)
 }
+
+loadReportData <- function(dateRange) {
+  load("R/sysdata.rda")
+  m <- paste0("data last cached on ", as_date(cacheDate))
+  message(m)
+  list(blogMetrics, updated)
+
+}

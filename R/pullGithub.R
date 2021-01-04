@@ -120,9 +120,8 @@ calcPostNum <- function(owner,
 #'
 
 getUncachedContributorPath <- function(owner = "FredHutch",
-                                           repo = "coop") {
-  # load cache
-  load("R/sysdata.rda")
+                                       repo = "coop",
+                                       knownContributors) {
   # pull current contributor filepaths
   contributors <- getDirContents(owner = owner,
                                  repo = repo,
@@ -255,9 +254,13 @@ getCommits <- function(owner,
 #' @export
 #'
 
-pullContributorData <- function(contributorPath,
-                                owner = "FredHutch",
-                                repo = "coop") {
+getContributorData <- function(contributorPath,
+                               owner = "FredHutch",
+                               repo = "coop") {
+  # check that contributorPath is not empty
+  if(length(contributorPath) == 0) {
+    stop("no contributor paths provided")
+  }
   # check if a dir or direct file path
   mdPresent <- any(grepl(".md", contributorPath))
   allMd <- all(mdPresent)
