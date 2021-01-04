@@ -3,8 +3,12 @@ title: "Monthly report"
 output: github_document
 ---
 
-```{r setup, include=FALSE}
+```{r global_options, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(fig.path='Figs/')
+```
+
+```{r setup, include=FALSE}
 # for github api
 library(gh)
 # for google analytics api

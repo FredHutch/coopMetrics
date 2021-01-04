@@ -39,7 +39,7 @@ ggplot(blogMetrics, aes(x = month, y = gh_numPostTotal)) +
 
     ## Warning: Removed 1 row(s) containing missing values (geom_path).
 
-![](monthly_report_files/figure-gfm/posts-total-plot-1.png)<!-- -->
+![](Figs/posts-total-plot-1.png)<!-- -->
 
 ``` r
 ggplot(blogMetrics, aes(x = month, y = gh_numNewPosts)) +
@@ -50,7 +50,7 @@ ggplot(blogMetrics, aes(x = month, y = gh_numNewPosts)) +
 
     ## Warning: Removed 1 rows containing missing values (position_stack).
 
-![](monthly_report_files/figure-gfm/posts-monthly-plot-1.png)<!-- -->
+![](Figs/posts-monthly-plot-1.png)<!-- -->
 
 ``` r
 ggplot(blogMetrics, aes(x = month)) +
@@ -64,7 +64,7 @@ ggplot(blogMetrics, aes(x = month)) +
 
     ## Warning: Removed 1 row(s) containing missing values (geom_path).
 
-![](monthly_report_files/figure-gfm/posts-overlay-1.png)<!-- -->
+![](Figs/posts-overlay-1.png)<!-- -->
 
 # Plot commits over time
 
@@ -77,7 +77,7 @@ ggplot(blogMetrics, aes(x = month, y = gh_numCommits)) +
 
     ## Warning: Removed 1 rows containing missing values (position_stack).
 
-![](monthly_report_files/figure-gfm/commits-monthly-plot-1.png)<!-- -->
+![](Figs/commits-monthly-plot-1.png)<!-- -->
 
 # Plot google analytics metrics
 
@@ -91,7 +91,7 @@ blogMetrics %>%
   theme_minimal()
 ```
 
-![](monthly_report_files/figure-gfm/unnamed-chunk-2-1.png)<!-- -->
+![](Figs/unnamed-chunk-2-1.png)<!-- -->
 
 ``` r
 blogMetrics %>%
@@ -102,4 +102,4 @@ blogMetrics %>%
   theme_minimal()
 ```
 
-![](monthly_report_files/figure-gfm/unnamed-chunk-3-1.png)<!-- -->
+![](Figs/unnamed-chunk-3-1.png)<!-- -->
