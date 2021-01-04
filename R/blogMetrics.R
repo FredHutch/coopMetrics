@@ -12,6 +12,15 @@ getBlogStatistics <- function(webPropertyName,
                               owner,
                               repo,
                               dateRange) {
+  #check date
+  if (is.Date(dateRange) == FALSE) {
+    dateRange <- ymd(dateRange)
+  }
+
+  end <- ceiling_date(max(dateRange), unit = "month") - 1
+  start <- floor_date(min(dateRange), unit = "month")
+
+  dateRange <- c(start, end)
   # pull google analytics data
   gaData <- pullGoogleAnalytics(webPropertyName = webPropertyName,
                                 dateRange = dateRange)
@@ -23,4 +32,12 @@ getBlogStatistics <- function(webPropertyName,
   names(gaData)[-1] <- paste0("ga_", names(gaData)[-1])
   data <- left_join(ghData, gaData, by = "month")
   return(data)
+}
+
+loadReportData <- function(dateRange) {
+  load("R/sysdata.rda")
+  m <- paste0("data last cached on ", as_date(cacheDate))
+  message(m)
+  list(blogMetrics, updated)
+
 }
