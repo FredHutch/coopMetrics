@@ -25,13 +25,29 @@ end <- ymd(Sys.Date())
 dateRange <- c(begin, end)
 
 ## PREPARE KNOWN CONTRIBUTOR DATA -------------------------------------------------------
-load("R/sysdata.rda") # loads knownContributorData
+load("R/sysdata.rda") # loads known contributorData
 uncachedContributor <- getUncachedContributorPath(owner = owner,
-                                                  repo = repo)
-uncachedContributorData <- pullContributorData(uncachedContributor,
-                                               owner = owner,
-                                               repo = repo)
-updatedContributorData <- bind_rows(knownContributorData, uncachedContributorData)
+                                                  repo = repo,
+                                                  knownContributors = knownContributorData)
+uncachedContributorData <- tryCatch(
+  {
+    getContributorData(uncachedContributor,
+                       owner = owner,
+                       repo = repo)
+  },
+  error=function(cond) {
+    message(cond)
+    return(NULL)
+  }
+)
+
+if(is.null(uncachedContributorData)) {
+  message("no new contributor data to be added")
+  updatedContributorData <- knownContributorData
+} else {
+  message("updating contributor data")
+  updatedContributorData <- bind_rows(knownContributorData, uncachedContributorData)
+}
 
 ## PREPARE BLOG DATA --------------------------------------------------------------------
 blogMetrics <- getBlogStatistics(webPropertyName = webPropertyName,
@@ -39,5 +55,11 @@ blogMetrics <- getBlogStatistics(webPropertyName = webPropertyName,
                                  repo = repo,
                                  dateRange = dateRange)
 
+## SAVE DATE CACHED ---------------------------------------------------------------------
+cacheDate <- Sys.Date()
+
+## RENAME UPDATED CONTRIUBTOR DATA
+knownContributorData <- updatedContributorData
+
 ## SAVE DATA ----------------------------------------------------------------------------
-usethis::use_data(updatedContributorData, cacheDate, blogMetrics, internal = TRUE, overwrite = TRUE)
+usethis::use_data(knownContributorData, cacheDate, blogMetrics, internal = TRUE, overwrite = TRUE)
