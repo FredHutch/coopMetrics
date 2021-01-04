@@ -1,36 +1,12 @@
----
-title: "Monthly report"
-output: github_document
----
-
-```{r global_options, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_chunk$set(fig.path='Figs/')
-```
-
-```{r setup, include=FALSE}
-# for github api
-library(gh)
-# for google analytics api
-library(googleAnalyticsR)
-library(googleAuthR)
-# for markdown
-library(knitr)
-library(kableExtra)
-# for plotting
-library(ggplot2)
-# for data wrangling
-library(lubridate)
-library(tidyverse)
-# for coop metrics functions
-# library(coopMetrics)
-files.sources <- list.files(path = "R/", pattern = "*.R")
-sapply(paste0("R/", files.sources), source)
-```
+Monthly report
+================
 
 ## Set variables
-For this report we are looking at the first 6 months of the year
-```{r variables}
+
+For this report we are looking at the first 6 months of the
+year
+
+``` r
 # cache is set to store the last year of data - must update cache if you need to go further back than a year.
 begin <- as_date("2020-01-01")
 end <- as_date(Sys.Date())
@@ -38,28 +14,45 @@ dateRange <- c(begin, end)
 ```
 
 ## Load data
-```{r}
+
+``` r
 load("R/sysdata.rda")
 message(paste0("Data loaded was last updated on ", cacheDate))
+```
+
+    ## Data loaded was last updated on 2021-01-04
+
+``` r
 message(paste0("Today is ", Sys.Date()))
 ```
 
+    ## Today is 2021-01-04
+
 # Plot posts over time
-```{r posts-total-plot}
+
+``` r
 ggplot(blogMetrics, aes(x = month, y = gh_numPostTotal)) +
   geom_line() +
   labs(title = "total posts by month", x = "month", y = "total number of posts") +
   theme_minimal()
 ```
 
-```{r posts-monthly-plot}
+    ## Warning: Removed 1 row(s) containing missing values (geom_path).
+
+![](Figs/posts-total-plot-1.png)<!-- -->
+
+``` r
 ggplot(blogMetrics, aes(x = month, y = gh_numNewPosts)) +
   geom_bar(stat = "identity") +
   labs(title = "number of posts per month", x = "month", y = "number of posts") +
   theme_minimal()
 ```
 
-```{r posts-overlay}
+    ## Warning: Removed 1 rows containing missing values (position_stack).
+
+![](Figs/posts-monthly-plot-1.png)<!-- -->
+
+``` r
 ggplot(blogMetrics, aes(x = month)) +
   geom_bar(aes(y = gh_numNewPosts), stat = "identity") +
   geom_line(aes(y = gh_numPostTotal)) +
@@ -67,16 +60,28 @@ ggplot(blogMetrics, aes(x = month)) +
   theme_minimal()
 ```
 
+    ## Warning: Removed 1 rows containing missing values (position_stack).
+
+    ## Warning: Removed 1 row(s) containing missing values (geom_path).
+
+![](Figs/posts-overlay-1.png)<!-- -->
+
 # Plot commits over time
-```{r commits-monthly-plot}
+
+``` r
 ggplot(blogMetrics, aes(x = month, y = gh_numCommits)) +
   geom_bar(stat = "identity") +
   labs(title = "number of commits per month", x = "month", y = "number of commits") +
   theme_minimal()
 ```
 
+    ## Warning: Removed 1 rows containing missing values (position_stack).
+
+![](Figs/commits-monthly-plot-1.png)<!-- -->
+
 # Plot google analytics metrics
-```{r}
+
+``` r
 blogMetrics %>%
   select(month, ga_users, ga_newUsers) %>%
   ggplot(aes(x = month)) +
@@ -86,7 +91,9 @@ blogMetrics %>%
   theme_minimal()
 ```
 
-```{r}
+![](Figs/unnamed-chunk-2-1.png)<!-- -->
+
+``` r
 blogMetrics %>%
   ggplot(aes(x = month)) +
   geom_line(aes(y = ga_pageviews, color = "page views")) +
@@ -94,3 +101,5 @@ blogMetrics %>%
   labs(x = "month", y = "count") +
   theme_minimal()
 ```
+
+![](Figs/unnamed-chunk-3-1.png)<!-- -->
