@@ -1,4 +1,14 @@
-## LOAD LIBRARY -------------------------------------------------------------------------
+## SET VARIABLES [ADJUST THESE AS NEEDED] -----------------------------------------------
+# web property name from google analytics
+webPropertyName <- "Coop blog"
+# owner and repo name of the github repository <owner/repositoryName>
+owner <- "FredHutch"
+repo <- "coop"
+# how far back do you want to collect data for?
+monthsAgo <- 12 # values is the number of months back we want to collect data from
+
+
+## LOAD LIBRARIES -----------------------------------------------------------------------
 library(lubridate)
 library(tidyverse)
 library(gh)
@@ -15,11 +25,7 @@ if(sourceScripts) {
   library(coopMetrics)
 }
 
-## SET VARIABLES ------------------------------------------------------------------------
-webPropertyName <- "Coop blog"
-owner <- "FredHutch"
-repo <- "coop"
-monthsAgo <- 12 # values is the number of months back we want to collect data from
+## SET DATE RANGE -----------------------------------------------------------------------
 begin <- ymd(Sys.Date()) - months(monthsAgo)
 end <- ymd(Sys.Date())
 dateRange <- c(begin, end)
@@ -58,7 +64,7 @@ blogMetrics <- getBlogStatistics(webPropertyName = webPropertyName,
 ## SAVE DATE CACHED ---------------------------------------------------------------------
 cacheDate <- Sys.Date()
 
-## RENAME UPDATED CONTRIUBTOR DATA
+## RENAME UPDATED CONTRIUBTOR DATA ------------------------------------------------------
 knownContributorData <- updatedContributorData
 
 ## SAVE DATA ----------------------------------------------------------------------------
