@@ -4,16 +4,14 @@
 \alias{pullGoogleAnalytics}
 \title{API pull from both Google Analytics.}
 \usage{
-pullGoogleAnalytics(
-  webPropertyName,
-  dateRange,
-  gaAcctEmail = "coophelp@fredhutch.org"
-)
+pullGoogleAnalytics(webPropertyName, dateRange, gaAcctEmail)
 }
 \arguments{
 \item{webPropertyName}{A variable from GoogleAnalytics. You can find out the webproperty name using `ga_account_list()`}
 
 \item{dateRange}{A vector of two dates in yyyy-mm-dd format. Can be strings or date objects. Order doesn't matter, the max and min will be used.}
+
+\item{gaAcctEmail}{Email of the google account associated with Google Analytics.}
 }
 \value{
 a dataframe of monthly metrics from the date range specified.

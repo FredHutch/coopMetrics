@@ -12,8 +12,6 @@ calcPostNum(owner, repo, dateRange)
 \item{repo}{The GitHub repository name}
 
 \item{dateRange}{A vector of two dates in yyyy-mm-dd format. Can be strings or date objects. Order doesn't matter, the max and min will be used.}
-
-\item{by}{"postNames" is the only option currently. Until I can determine a better way to calculate posts.}
 }
 \value{
 a dataframe of number of posts per month
