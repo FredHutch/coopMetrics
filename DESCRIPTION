@@ -13,4 +13,6 @@ Suggests:
     testthat
 Imports: 
     gh,
-    lubridate
+    lubridate,
+    dplyr,
+    purrr

@@ -4,14 +4,14 @@
 \alias{calcPostNum}
 \title{Calculate the number of posts per month in a Jekyll/GitHub pages repository.}
 \usage{
-calcPostNum(owner, repo, dateRange, by = "postName")
+calcPostNum(owner, repo, dateRange)
 }
 \arguments{
-\item{owner}{The owner of the repository to pull file paths from.}
+\item{owner}{The GitHub repository owner}
 
-\item{repo}{The name of the repository to pull file paths from.}
+\item{repo}{The GitHub repository name}
 
-\item{dateRange}{A vector of two dates.}
+\item{dateRange}{A vector of two dates in yyyy-mm-dd format. Can be strings or date objects. Order doesn't matter, the max and min will be used.}
 
 \item{by}{"postNames" is the only option currently. Until I can determine a better way to calculate posts.}
 }

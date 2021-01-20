@@ -2,20 +2,20 @@
 % Please edit documentation in R/pullGithub.R
 \name{calcCommitNum}
 \alias{calcCommitNum}
-\title{calculates the number of commits to a given repository over a specified date range.}
+\title{calculates the number of commits/month to a given repository over a specified date range.}
 \usage{
 calcCommitNum(owner, repo, dateRange)
 }
 \arguments{
-\item{owner}{The owner of the repository to pull file paths from.}
+\item{owner}{The GitHub repository owner}
 
-\item{repo}{The name of the repository to pull file paths from.}
+\item{repo}{The GitHub repository name}
 
-\item{dateRange}{A vector of two dates.}
+\item{dateRange}{A vector of two dates in yyyy-mm-dd format. Can be strings or date objects. Order doesn't matter, the max and min will be used.}
 }
 \value{
 a date object of the date that the specified file was first commited to the repository.
 }
 \description{
-calculates the number of commits to a given repository over a specified date range.
+calculates the number of commits/month to a given repository over a specified date range.
 }

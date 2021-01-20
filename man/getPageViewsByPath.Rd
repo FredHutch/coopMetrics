@@ -9,7 +9,7 @@ getPageViewsByPath(viewId, dateRange, onlyPosts = TRUE)
 \arguments{
 \item{viewId}{A Google Analytics `viewId`. You can find out the webproperty name using `getAccountInfo()` or `ga_account_list()`.}
 
-\item{dateRange}{A vector of two dates.}
+\item{dateRange}{A vector of two dates in yyyy-mm-dd format. Can be strings or date objects. Order doesn't matter, the max and min will be used.}
 
 \item{onlyPosts}{A binary parameter. If TRUE only returns page path results for posts.}
 }

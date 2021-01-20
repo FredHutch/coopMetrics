@@ -7,11 +7,11 @@
 filepathToOldestCommitDate(owner, repo, filepath)
 }
 \arguments{
-\item{owner}{The owner of the repository to pull file paths from.}
+\item{owner}{the GitHub repository owner}
 
-\item{repo}{The name of the repository to pull file paths from.}
+\item{repo}{The GitHub repository name}
 
-\item{filepath}{The directory name to pull file paths from.}
+\item{filepath}{Path to the file to return first commit date from}
 }
 \value{
 a date object of the date that the specified file was first commited to the repository.

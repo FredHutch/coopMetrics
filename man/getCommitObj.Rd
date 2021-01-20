@@ -7,16 +7,16 @@
 getCommitObj(owner, repo, dateRange, pageNum)
 }
 \arguments{
-\item{owner}{The owner of the repository to pull file paths from.}
+\item{owner}{The GitHub repository owner}
 
-\item{repo}{The name of the repository to pull file paths from.}
+\item{repo}{The GitHub repository name}
 
-\item{dateRange}{A vector of two dates.}
+\item{dateRange}{A vector of two dates in yyyy-mm-dd format. Can be strings or date objects. Order doesn't matter, the max and min will be used.}
 
-\item{pageNum}{Page number of the results to return.}
+\item{pageNum}{Page number of the results to return}
 }
 \value{
-a date object of the date that the specified file was first commited to the repository.
+
 }
 \description{
 Lists commits for specified repository and dateRange. Set to return the max amount per page (100).
