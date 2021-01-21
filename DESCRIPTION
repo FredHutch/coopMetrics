@@ -1,14 +1,14 @@
 Package: coopMetrics
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Pull and Report on Blog Metrics via the GitHub and GoogleAnalytics APIs
 Version: 0.1.0
 Author: Lauren Wolfe
 Maintainer: Lauren Wolfe <lwolfe@fredhutch.org>
-Description: A package for pulling and aggregating data from GitHub and Google Analytics for reporting on gh-pages sites
+Description: A package for pulling and aggregating data from GitHub and Google Analytics for reporting on gh-pages sites. Works specifically with Jekyll static sites.
 License: What license is it under?
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.0.2
+RoxygenNote: 7.1.1
 Suggests: 
     testthat
 Imports: 
@@ -17,4 +17,5 @@ Imports:
     dplyr,
     purrr,
     googleAnalyticsR,
-    googleAuthR
+    googleAuthR,
+    magrittr
