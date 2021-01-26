@@ -4,6 +4,7 @@
 #'
 #' @param webPropertyName A variable from GoogleAnalytics. You can find out the webproperty name using `ga_account_list()`
 #' @param dateRange A vector of two dates in yyyy-mm-dd format. Can be strings or date objects. Order doesn't matter, the max and min will be used.
+#' @param gaAcctEmail Email of the google account associated with Google Analytics.
 #'
 #' @return a dataframe of monthly metrics from the date range specified.
 #'
@@ -11,7 +12,7 @@
 #' @import lubridate
 pullGoogleAnalytics <- function(webPropertyName,
                                 dateRange,
-                                gaAcctEmail = "coophelp@fredhutch.org") {
+                                gaAcctEmail) {
   ga_auth(email = gaAcctEmail)
   # Get viewId
   viewId <- webPropertyNameToViewId(webPropertyName = webPropertyName)

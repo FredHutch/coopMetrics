@@ -48,7 +48,7 @@ calcCommitNum  <- function(owner,
                            dateRange) {
   # check dateRange format and update to date if needed
   if (is.Date(dateRange) == FALSE) {
-    dateRange <- ymd(dateRange)
+    dateRange <- lubridate::ymd(dateRange)
   }
   ## Pull commit object
   commitObjList <- getCommits(owner, repo, dateRange)
@@ -56,15 +56,15 @@ calcCommitNum  <- function(owner,
   # flatten to a vector
   # coerce to date
   dates <- commitObjList %>%
-    map("commit") %>%
-    map("committer") %>%
-    map("date") %>%
-    flatten_chr() %>%
-    as_date()
+    purrr::map("commit") %>%
+    purrr::map("committer") %>%
+    purrr::map("date") %>%
+    purrr::flatten_chr() %>%
+    lubridate::as_date()
   commitsByMonth <- tibble(commitDate = dates) %>%
-    mutate(month = floor_date(commitDate, unit = "month")) %>%
-    group_by(month) %>%
-    summarise(numCommits = n())
+    dplyr::mutate(month = lubridate::floor_date(commitDate, unit = "month")) %>%
+    dplyr::group_by(month) %>%
+    dplyr::summarise(numCommits = n())
 
   return(commitsByMonth)
 }
@@ -76,7 +76,6 @@ calcCommitNum  <- function(owner,
 #' @param owner The GitHub repository owner
 #' @param repo The GitHub repository name
 #' @param dateRange A vector of two dates in yyyy-mm-dd format. Can be strings or date objects. Order doesn't matter, the max and min will be used.
-#' @param by "postNames" is the only option currently. Until I can determine a better way to calculate posts.
 #'
 #' @return a dataframe of number of posts per month
 #'

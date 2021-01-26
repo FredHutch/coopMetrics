@@ -11,7 +11,7 @@ calcContributorNum(owner, repo, dateRange)
 
 \item{repo}{The repository name.}
 
-\item{dateRange}{A vector of two dates.}
+\item{dateRange}{A vector of two dates in yyyy-mm-dd format. Can be strings or date objects. Order doesn't matter, the max and min will be used.}
 }
 \value{
 
