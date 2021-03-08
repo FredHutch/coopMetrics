@@ -1,5 +1,5 @@
 ---
-title: "Monthly report"
+title: "Draft report"
 output: github_document
 ---
 
@@ -38,7 +38,7 @@ dateRange <- c(begin, end)
 ```
 
 ## Load data
-```{r}
+```{r data}
 load("R/sysdata.rda")
 message(paste0("Data loaded was last updated on ", cacheDate))
 message(paste0("Today is ", Sys.Date()))
@@ -76,7 +76,7 @@ ggplot(blogMetrics, aes(x = month, y = gh_numCommits)) +
 ```
 
 # Plot google analytics metrics
-```{r}
+```{r plot-ga}
 blogMetrics %>%
   select(month, ga_users, ga_newUsers) %>%
   ggplot(aes(x = month)) +
