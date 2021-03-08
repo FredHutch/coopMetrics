@@ -28,15 +28,6 @@ files.sources <- list.files(path = "R/", pattern = "*.R")
 sapply(paste0("R/", files.sources), source)
 ```
 
-## Set variables
-For this report we are looking at the first 6 months of the year
-```{r variables}
-# cache is set to store the last year of data - must update cache if you need to go further back than a year.
-begin <- as_date("2020-01-01")
-end <- as_date(Sys.Date())
-dateRange <- c(begin, end)
-```
-
 ## Load data
 ```{r}
 load("R/sysdata.rda")
