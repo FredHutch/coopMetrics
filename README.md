@@ -1,6 +1,6 @@
 # coopMetrics
 
-The `coopMetrics` package was developed as a thin wrapper around the [`gh`](https://github.com/r-lib/gh) and [`googleAnalyticsR`](https://code.markedmondson.me/googleAnalyticsR/) packages to pull specific metrics from either API. It's meant to work specifically with GitHub Pages blog set up using [Jekyll](https://jekyllrb.com/). 
+The `coopMetrics` package was developed as a thin wrapper around the [`gh`](https://github.com/r-lib/gh) and [`googleAnalyticsR`](https://code.markedmondson.me/googleAnalyticsR/) packages to pull specific metrics. It's meant to work specifically with GitHub Pages blogs set up using [Jekyll](https://jekyllrb.com/). 
 
 ## Installation
 
@@ -11,7 +11,7 @@ devtools::install_github(repo = "FredHutch/coopMetrics",
 
 ## Usage
 
-This package works in two parts. First, pulling the data from GitHub and Google Analytics and saving it. Second, building the report.
+This package works by pulling data from GitHub and Google Analytics. 
 
 ### To refresh the available dataset:
 - update variables in `data-raw/DATA.R` if needed
@@ -20,7 +20,7 @@ This package works in two parts. First, pulling the data from GitHub and Google 
 
 Data is pulled from GitHub and GoogleAnalytics using the `gh` and `googleAnalyticsR` packages. The data object is saved to `R/sysdata.Rda`. This internal data object is then used to generate the figures in `monthly_report.md`. 
 
-Two data objects are saved as `1sysdata.Rda1`: `blogMetrics` and `knownContributorData`.
+Two data objects are saved as `sysdata.Rda`: `blogMetrics` and `knownContributorData`.
 
 **`blogMetrics`**
 
@@ -51,19 +51,16 @@ This object is a dataframe capturing the following metrics from `_contributor` f
 - Contributor handle (this is the filename with the path and `.md` removed)
 - Date of first commit
 
-### To generate report
-- open `monthly_report.Rmd` and knit
-
 ## More info:
 
-### Google Analytics
+### Google Analytics API
 - Google Analytics requires an account. 
 - The [`googleAnalyticsR::ga_auth`](https://www.rdocumentation.org/packages/googleAnalyticsR/versions/0.8.0/topics/ga_auth) function is utilized to authenticate. It will prompt you to supply your credentials through an interactive pop out.
 
 * See documentation about `GoogleAnalyticsR` [here](https://code.markedmondson.me/googleAnalyticsR/)
 * See documentation about the Google Analytics API [here](https://developers.google.com/analytics/devguides/reporting/core/v4)
 
-### GitHub
+### GitHub API
 - No account information is required to get data from public repositories. Simply provide the repo owner and repo name.
 
 * See documentation about the `gh` package [here](https://github.com/r-lib/gh)
