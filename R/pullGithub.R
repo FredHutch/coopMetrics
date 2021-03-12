@@ -30,88 +30,42 @@ pullGithub <- function(owner = "FredHutch",
   return(githubData)
 }
 
-
-## COMMITS --------------------------------------------------------------------
-
-#' calculates the number of commits/month to a given repository over a specified date range.
-#'
+## COMMITS -------------------------------------------------------------------------------
 #' @param owner The GitHub repository owner
 #' @param repo The GitHub repository name
 #' @param dateRange A vector of two dates in yyyy-mm-dd format. Can be strings or date objects. Order doesn't matter, the max and min will be used.
-#'
-#' @return a date object of the date that the specified file was first commited to the repository.
-#'
-#' @export
+commitMetrics <- function(owner,
+                          repo,
+                          dateRange) {
+  # modify dateRange format
+  dateRange <- dateRangeToStartEnd(dateRange)
+  # pull commits over dateRange
+  commitObj <- getCommits(owner,
+                          repo,
+                          start = dateRange$start,
+                          end = dateRange$end)
+  # create dataframe aggregating commits by month
+  commitTbl <- calcCommitNum(commitObj)
 
-calcCommitNum  <- function(owner,
-                           repo,
-                           dateRange) {
-  # check dateRange format and update to date if needed
-  if (is.Date(dateRange) == FALSE) {
-    dateRange <- lubridate::ymd(dateRange)
-  }
-  ## Pull commit object
-  commitObjList <- getCommits(owner, repo, dateRange)
-  # unnest commitDates from list of lists
-  # flatten to a vector
-  # coerce to date
-  dates <- commitObjList %>%
-    purrr::map("commit") %>%
-    purrr::map("committer") %>%
-    purrr::map("date") %>%
-    purrr::flatten_chr() %>%
-    lubridate::as_date()
-  commitsByMonth <- tibble(commitDate = dates) %>%
-    dplyr::mutate(month = lubridate::floor_date(commitDate, unit = "month")) %>%
-    dplyr::group_by(month) %>%
-    dplyr::summarise(numCommits = n())
-
-  return(commitsByMonth)
+  return(commitTbl)
 }
 
-## POSTS ----------------------------------------------------------------------
+## POSTS ---------------------------------------------------------------------------------
 
-#' Calculate the number of posts per month in a Jekyll/GitHub pages repository.
-#'
-#' @param owner The GitHub repository owner
-#' @param repo The GitHub repository name
-#' @param dateRange A vector of two dates in yyyy-mm-dd format. Can be strings or date objects. Order doesn't matter, the max and min will be used.
-#'
-#' @return a dataframe of number of posts per month
-#'
-#' @export
-#' @import lubridate
-calcPostNum <- function(owner,
+postMetrics <- function(owner,
                         repo,
                         dateRange) {
-  # check that dateRange is in correct format
+  # get _post directory contents
+  posts <- getDirContents(owner = owner,
+                          repo = repo,
+                          dir = "_posts",
+                          fullPath = TRUE)
 
-  # function only works on full months
-  # adjust dateRange to the first of the start month until the last day of the end month
-  start <- floor_date(min(dateRange), "month")
-  end <- ceiling_date(max(dateRange), "month") - 1
+  postTbl <- calcPostNumJekyll(posts)
 
-  end <- ceiling_date(max(dateRange), unit = "month") - 1
-  start <- floor_date(min(dateRange), unit = "month")
-
-  # get filenames from "_posts" directory
-  #
-  postDf <- tibble(postPath = getDirContents(owner = owner,
-                                             repo = repo,
-                                             dir = "_posts",
-                                             fullPath = FALSE)) %>%
-    mutate(date = as_date(str_sub(postPath, start = 1, end = 10))) %>%
-    mutate(month = floor_date(date, unit = "month")) %>%
-    group_by(month) %>%
-    summarise(numNewPosts = n()) %>%
-    mutate_at("numNewPosts", ~replace(., is.na(.), 0)) %>%
-    mutate(numPostTotal = cumsum(numNewPosts))%>%
-    filter(month >= start & month <= end)
-
-  return(postDf)
+  return(postTbl)
 }
-
-## CONTRIBUTORS ---------------------------------------------------------------
+## CONTRIBUTORS --------------------------------------------------------------------------
 
 #' Compares current contributor files in repository to known cache of contributors.
 #' @param owner The owner of the repository to pull file paths from.
@@ -194,59 +148,59 @@ calcContributorNum <- function(owner,
   return(contributorsByMonthYear)
 }
 
-## HELPER FUNCTIONS FOR COMMIT PULL ------------------------------------------------------
-#' Pulls commit history from GitHub using the [Repo Commits API](https://docs.github.com/en/rest/reference/repos#commits).
-#' @param owner The GitHub repository owner
-#' @param repo The GitHub repository name
-#' @param dateRange A vector of two dates in yyyy-mm-dd format. Can be strings or date objects. Order doesn't matter, the max and min will be used.
-#' @param pageNum Page number of the results to return
+## HELPER FUNCTIONS FOR COMMIT METRICS ------------------------------------------------------
+#' Lists commits for a specified repository over a date range.
+#' @param owner The GitHub repository owner.
+#' @param repo The GitHub repository name.
+#' @param start Beginning of date range in yyyy-mm-dd format. Can be strings or date objects.
+#' @param end End of date range in yyyy-mm-dd format. Can be strings or date objects.
 #'
-#' @return a nested gh_response object
-
-getCommitObj <- function(owner,
-                         repo,
-                         start,
-                         end,
-                         pageNum) {
-  # pull commits for the month range specified
-  commitObj <- gh("GET /repos/:owner/:repo/commits",
-                  owner = owner,
-                  repo = repo,
-                  since = start,
-                  until = end,
-                  per_page = 100,
-                  page = pageNum)
-  return(commitObj)
-}
-
-#' Lists commits for specified repository and dateRange. Set to return the max amount per page (100).
-#' @param owner The GitHub repository owner
-#' @param repo The GitHub repository name
-#' @param dateRange A vector of two dates in yyyy-mm-dd format. Can be strings or date objects. Order doesn't matter, the max and min will be used.
-#' @param pageNum Page number of the results to return
-#'
-#' @return
-#'
+#' @return A list where each element contains information about a single commit including author, date, and commit message.
 
 getCommits <- function(owner,
                        repo,
-                       dateRange) {
-
+                       start,
+                       end) {
   commitObj <- NULL
   commitObjList <- list()
   i <- 1
   while (length(commitObj) == 100 | is.null(commitObj)) {
-    commitObj <- getCommitObj(owner = owner,
-                              repo = repo,
-                              start,
-                              end,
-                              pageNum = i)
+    commitObj <- gh("GET /repos/:owner/:repo/commits",
+                    owner = owner,
+                    repo = repo,
+                    since = start,
+                    until = end,
+                    per_page = 100,
+                    page = i)
     commitObjList <- append(commitObjList, commitObj)
     i <- i + 1
   }
   return(commitObjList)
 }
 
+#' Calculates the number of commits/month to a given repository over a specified date range.
+#'
+#' @param commitObjList The result from `getCommits()` or `gh("GET /repos/:owner/:repo/commits, ... )`. A list where each element contains all info relevant to a single commit.
+#'
+#' @return a tibble that shows the number of commits to a repository by month. Tibble has two columns: `month`, `numCommits`.
+
+calcCommitNum  <- function(commitObjList) {
+  # unnest commitDates from list of lists
+  # flatten to a vector
+  # coerce to date
+  dates <- commitObjList %>%
+    purrr::map("commit") %>%
+    purrr::map("committer") %>%
+    purrr::map("date") %>%
+    purrr::flatten_chr() %>%
+    lubridate::as_date()
+  commitTbl <- tibble(commitDate = dates) %>%
+    dplyr::mutate(month = lubridate::floor_date(commitDate, unit = "month")) %>%
+    dplyr::group_by(month) %>%
+    dplyr::summarise(numCommits = n())
+
+  return(commitTbl)
+}
 
 ## HELPER FUNCTIONS FOR CONTRIBUTOR PULL -------------------------------------------------
 
@@ -291,6 +245,32 @@ getContributorData <- function(contributorPath,
                             handle = pathToContributor(paths))
   return(contributorData)
 }
+
+## HELPER FUNCTIONS FOR POSTS ------------------------------------------------------------
+#' Calculate the number of posts per month in a Jekyll GitHub pages repository.
+#'
+#' @param postDirContents
+#'
+#' @return a dataframe of number of posts per month
+
+calcPostNumJekyll <- function(postDirContents,
+                              dateRange) {
+
+  dateRange <- dateRangeToStartEnd(dateRange)
+  # get filenames from "_posts" directory
+  # use dates in filenames to parse by dateRange
+  tibble(postPath = postDirContents) %>%
+    mutate(date = as_date(str_sub(postPath, start = 1, end = 10))) %>%
+    mutate(month = floor_date(date, unit = "month")) %>%
+    group_by(month) %>%
+    summarise(numNewPosts = n()) %>%
+    mutate_at("numNewPosts", ~replace(., is.na(.), 0)) %>%
+    mutate(numPostTotal = cumsum(numNewPosts))%>%
+    filter(month >= dateRange$start & dateRange$end <= end)
+
+  return(postDf)
+}
+
 
 ## GENERIC HELPER FUNCTIONS ------------------------------------------------------
 
@@ -364,21 +344,21 @@ filepathToOldestCommitDate <- function(owner,
   return(oldestCommitDate)
 }
 
-# not exactly sure why I made this fxn but not ready to toss yet
-# completeMonths <- function(df,
-#                            dateRange) {
-#   completeRange <- tibble(month = seq.Date(from = min(dateRange),
-#                                            to = max(dateRange),
-#                                            by = "month"))
-#   completeTbl <- full_join(df, completeRange) %>%
-#     arrange(month)
-#   return(completeTbl)
-# }
+## Date handling
+is.Ymd <- function(x) {
+  !is.na(lubridate::ymd(x, quiet = TRUE))
+}
 
-checkIsDate <- function(dateRange) {
-  dateCheck <- sapply(dateRange, is.Date)
-  if (!all(dateCheck)) {
-    stop("DateRange in incorrect format. Must be a date object.")
+checkDateFormat <- function(dates) {
+  isYmd <- sapply(dates, is.Ymd)
+  if (!all(isYmd)) {
+    stop("ERROR: Dates must be in year-month-date format")
   }
 }
 
+dateRangeToStartEnd <- function(dateRange) {
+  start <- floor_date(min(dateRange), "month")
+  end <- ceiling_date(max(dateRange), "month") - 1
+
+  return(list(start = start, end = end))
+}
