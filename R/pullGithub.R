@@ -59,9 +59,11 @@ postMetrics <- function(owner,
   posts <- getDirContents(owner = owner,
                           repo = repo,
                           dir = "_posts",
-                          fullPath = TRUE)
-
-  postTbl <- calcPostNumJekyll(posts)
+                          fullPath = FALSE)
+  # calculate posts/month using post file name
+  # Jekyll posts always have yyyy-mm-dd in post title
+  postTbl <- calcPostNumJekyll(posts,
+                               dateRange)
 
   return(postTbl)
 }
@@ -253,22 +255,20 @@ getContributorData <- function(contributorPath,
 #'
 #' @return a dataframe of number of posts per month
 
-calcPostNumJekyll <- function(postDirContents,
+calcPostNumJekyll <- function(posts,
                               dateRange) {
-
-  dateRange <- dateRangeToStartEnd(dateRange)
   # get filenames from "_posts" directory
   # use dates in filenames to parse by dateRange
-  tibble(postPath = postDirContents) %>%
-    mutate(date = as_date(str_sub(postPath, start = 1, end = 10))) %>%
-    mutate(month = floor_date(date, unit = "month")) %>%
+  postTbl <- as_date(str_sub(posts, start = 1, end = 10)) %>%
+    tibble(post = postDirContents, date = .) %>%
+    mutate(month = floor_date(date, unit = "month"))%>%
     group_by(month) %>%
     summarise(numNewPosts = n()) %>%
     mutate_at("numNewPosts", ~replace(., is.na(.), 0)) %>%
     mutate(numPostTotal = cumsum(numNewPosts))%>%
-    filter(month >= dateRange$start & dateRange$end <= end)
+    filter(month >= min(dateRange) & month <= max(dateRange))
 
-  return(postDf)
+  return(postTbl)
 }
 
 
