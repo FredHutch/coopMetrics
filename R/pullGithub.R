@@ -84,10 +84,12 @@ calcCommitNum  <- function(owner,
 calcPostNum <- function(owner,
                         repo,
                         dateRange) {
-  #check date
-  if (is.Date(dateRange) == FALSE) {
-    dateRange <- ymd(dateRange)
-  }
+  # check that dateRange is in correct format
+
+  # function only works on full months
+  # adjust dateRange to the first of the start month until the last day of the end month
+  start <- floor_date(min(dateRange), "month")
+  end <- ceiling_date(max(dateRange), "month") - 1
 
   end <- ceiling_date(max(dateRange), unit = "month") - 1
   start <- floor_date(min(dateRange), unit = "month")
@@ -193,6 +195,30 @@ calcContributorNum <- function(owner,
 }
 
 ## HELPER FUNCTIONS FOR COMMIT PULL ------------------------------------------------------
+#' Pulls commit history from GitHub using the [Repo Commits API](https://docs.github.com/en/rest/reference/repos#commits).
+#' @param owner The GitHub repository owner
+#' @param repo The GitHub repository name
+#' @param dateRange A vector of two dates in yyyy-mm-dd format. Can be strings or date objects. Order doesn't matter, the max and min will be used.
+#' @param pageNum Page number of the results to return
+#'
+#' @return a nested gh_response object
+
+getCommitObj <- function(owner,
+                         repo,
+                         start,
+                         end,
+                         pageNum) {
+  # pull commits for the month range specified
+  commitObj <- gh("GET /repos/:owner/:repo/commits",
+                  owner = owner,
+                  repo = repo,
+                  since = start,
+                  until = end,
+                  per_page = 100,
+                  page = pageNum)
+  return(commitObj)
+}
+
 #' Lists commits for specified repository and dateRange. Set to return the max amount per page (100).
 #' @param owner The GitHub repository owner
 #' @param repo The GitHub repository name
@@ -202,39 +228,18 @@ calcContributorNum <- function(owner,
 #' @return
 #'
 
-getCommitObj <- function(owner,
-                         repo,
-                         dateRange,
-                         pageNum) {
-  # check that dateRange is in correct format
-  if (is.Date(dateRange) == FALSE) {
-    dateRange <- ymd(dateRange)
-  }
-  # function only works on full months
-  # adjust dateRange to the first of the start month until the last day of the end month
-  start <- floor_date(min(dateRange), "month")
-  end <- ceiling_date(max(dateRange), "month") - 1
-  # pull commits for the month range specified
-  commitObj <- gh("GET /repos/:owner/:repo/commits",
-                  owner = "FredHutch",
-                  repo = "coop",
-                  since = start,
-                  until = end,
-                  per_page = 100,
-                  page = pageNum)
-  return(commitObj)
-}
-
 getCommits <- function(owner,
                        repo,
                        dateRange) {
+
   commitObj <- NULL
   commitObjList <- list()
   i <- 1
   while (length(commitObj) == 100 | is.null(commitObj)) {
     commitObj <- getCommitObj(owner = owner,
-                              dateRange = dateRange,
                               repo = repo,
+                              start,
+                              end,
                               pageNum = i)
     commitObjList <- append(commitObjList, commitObj)
     i <- i + 1
@@ -360,12 +365,20 @@ filepathToOldestCommitDate <- function(owner,
 }
 
 # not exactly sure why I made this fxn but not ready to toss yet
-completeMonths <- function(df,
-                           dateRange) {
-  completeRange <- tibble(month = seq.Date(from = min(dateRange),
-                                           to = max(dateRange),
-                                           by = "month"))
-  completeTbl <- full_join(df, completeRange) %>%
-    arrange(month)
-  return(completeTbl)
+# completeMonths <- function(df,
+#                            dateRange) {
+#   completeRange <- tibble(month = seq.Date(from = min(dateRange),
+#                                            to = max(dateRange),
+#                                            by = "month"))
+#   completeTbl <- full_join(df, completeRange) %>%
+#     arrange(month)
+#   return(completeTbl)
+# }
+
+checkIsDate <- function(dateRange) {
+  dateCheck <- sapply(dateRange, is.Date)
+  if (!all(dateCheck)) {
+    stop("DateRange in incorrect format. Must be a date object.")
+  }
 }
+
