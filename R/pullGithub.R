@@ -1,39 +1,52 @@
-## MAIN FUNCTION --------------------------------------------------------------
+## MAIN FUNCTION -------------------------------------------------------------------------
 
 #' Pull repository statistics for specified GitHub repository. Specifically repositories set up to host a Jekyll/GitHub Pages site.
 #'
 #' @param owner The repository name of the relevant GitHub repo.
 #' @param repo The owner of the relevant GitHub repo.
 #' @param dateRange A vector of two dates.
+#' @param useCache TRUE/FALSE.
 #'
 #' @return a dataframe of metrics for the date range specified.
 #'
 #' @export
 #' @import lubridate
-pullGithub <- function(owner = "FredHutch",
-                       repo = "coop",
-                       dateRange) {
-  # Get contributor information
-  contributorInfo <- calcContributorNum(owner = owner,
-                                        repo = repo,
-                                        dateRange = dateRange)
-  # Get the number of commits
-  commitInfo <- calcCommitNum(owner = owner,
-                              repo = repo,
-                              dateRange = dateRange)
-  postInfo <- calcPostNum(owner = owner,
+githubMetrics <- function(owner,
+                          repo,
+                          dateRange,
+                          useCache) {
+  # validate dateRange format is ymd
+  checkDateFormat(dateRange)
+  # validate that dateRange are date objects, if not make them
+  isDate <- all(sapply(dateRange, is.Date))
+  if (!isDate) {
+    dateRange <- ymd(dateRange)
+  }
+  # get metrics
+  contributor <- contributorMetrics(owner = owner,
+                                    repo = repo,
+                                    dateRange = dateRange,
+                                    useCache = useCache)
+  commit <- commitMetrics(owner = owner,
                           repo = repo,
                           dateRange = dateRange)
-  githubData <- left_join(contributorInfo, commitInfo, by = "month") %>%
-    left_join(., postInfo, by = "month") %>%
+  post <- postMetrics(owner = owner,
+                      repo = repo,
+                      dateRange = dateRange)
+
+  githubData <- left_join(contributor, commit, by = "month") %>%
+    left_join(., post, by = "month") %>%
     select(month, numCommits, numPostTotal, numNewPosts, totalContributors, numNewContributors, handles)
   return(githubData)
 }
 
 ## COMMITS -------------------------------------------------------------------------------
+
+#' Pull and calculate commit metric (commits per month over a time frame)
 #' @param owner The GitHub repository owner
 #' @param repo The GitHub repository name
 #' @param dateRange A vector of two dates in yyyy-mm-dd format. Can be strings or date objects. Order doesn't matter, the max and min will be used.
+
 commitMetrics <- function(owner,
                           repo,
                           dateRange) {
@@ -52,6 +65,11 @@ commitMetrics <- function(owner,
 
 ## POSTS ---------------------------------------------------------------------------------
 
+#' Pull and calculate posts metric (posts per month over a time frame)
+#' @param owner The GitHub repository owner
+#' @param repo The GitHub repository name
+#' @param dateRange A vector of two dates in yyyy-mm-dd format. Can be strings or date objects. Order doesn't matter, the max and min will be used.
+
 postMetrics <- function(owner,
                         repo,
                         dateRange) {
@@ -69,88 +87,51 @@ postMetrics <- function(owner,
 }
 ## CONTRIBUTORS --------------------------------------------------------------------------
 
-#' Compares current contributor files in repository to known cache of contributors.
-#' @param owner The owner of the repository to pull file paths from.
-#' @param repo The name of the repository to pull file paths from.
-#'
-#' @export
-#'
-
-getUncachedContributorPath <- function(owner = "FredHutch",
-                                       repo = "coop",
-                                       knownContributors) {
-  # pull current contributor filepaths
-  contributors <- getDirContents(owner = owner,
-                                 repo = repo,
-                                 dir = "_contributors",
-                                 fullPath = TRUE)
-  uncachedContributorPath <- setdiff(contributors, knownContributorData$path)
-  return(uncachedContributorPath)
-}
-
-calcContributorCommitData <- function(contributorData) {
-  contributorDataCount <- contributorData %>%
-    group_by(month) %>%
-    summarise(numNewContributors = n(),
-              handles = paste0(handle, collapse = ", ")) %>%
-    mutate(totalContributors = cumsum(numNewContributors)) %>%
-    select(month, totalContributors, numNewContributors, handles)
-
-  return(contributorDataCount)
-}
-
-
-#' This function calculates the number of new contributors and total contributors
+#' This function calculates the number of new contributors and total contributors by month
 #'
 #' @param owner The owner of the repository that the blog lives in.
 #' @param repo The repository name.
 #' @param dateRange A vector of two dates in yyyy-mm-dd format. Can be strings or date objects. Order doesn't matter, the max and min will be used.
+#' @param useCache TRUE/FALSE. When TRUE, use cached data. When FALSE, pull all data. Using cached data will make the function run faster.
 #'
 #' @return
 #'
 #' @export
-#'
-calcContributorNum <- function(owner,
+
+contributorMetrics <- function(owner,
                                repo,
-                               dateRange) {
-  if (is.Date(dateRange) == FALSE) {
-    dateRange <- ymd(dateRange)
+                               dateRange,
+                               useCache = TRUE) {
+  dateRange <- dateRangeToStartEnd(dateRange)
+  # if useCache is TRUE, only pull new contributors, will merge with cached
+  # if useCache is FALSE, pull all contributor data
+  contributorData <- getContributorDataJekyll(owner = owner,
+                                              repo = repo,
+                                              onlyNew = useCache)
+  # if useCache is TRUE check that cache exists
+  if (!file.exists(here::here("R/sysdata.rda"))) {
+    stop("useCache = TRUE but no cache is found. Use createCache() to create store your data locally.")
   }
-  # dateRange to start and end date rounded to the month
-  start <- floor_date(min(dateRange), unit = "months")
-  end <- ceiling_date(max(dateRange), unit = "months")
-  # load known contributor cache
-  load("R/sysdata.rda")
-  contributorData <- knownContributorData
-  # compare known contributors (generated by data-raw/DATA.R and stored in R/sysdata.rda)
-  # to unknown contributors (contributors with a file in _contributors but with no data stored in sysdata.rda)
-  # known contributor list will be updated as needed and noted as a new version of the package.
-  uncachedContributorPath <- getUncachedContributorPath(owner = owner,
-                                                            repo = repo)
-  # if there are uncached contributors pull contributor data for these paths
-  if (length(uncachedContributorPath) != 0) {
-    uncachedContributorData <- pullContributorData(uncachedContributorPath,
-                                                   owner = owner,
-                                                   repo = repo)
-    contributorData <- bind_rows(contributorData, uncachedContributorData)
+  # if useCache is TRUE
+  # load cache
+  # merge with the contributor data of new contributors
+  if (useCache) {
+    load("R/sysdata.rda")
+    contributorData <- suppressMessages(full_join(knownContributorData, contributorData))
   }
-  # take contributorData
-  # mutate commitDate to month (yyyy-mm-01)
-  # calls function calcContributorCommitData
-  # filter output by dateRange provided
-  # fill in missing months with zeros
+
   contributorsByMonthYear <-  contributorData %>%
     mutate(month = floor_date(commitDate, unit = "month")) %>%
-    calcContributorCommitData() %>%
-    completeMonths(dateRange = dateRange) %>%
+    aggregateContributorData() %>%
+    completeMonths(dateCol = "month") %>%
     mutate_at("numNewContributors", ~replace(., is.na(.), 0)) %>%
     mutate(totalContributors = cumsum(numNewContributors)) %>%
-    filter(month >= start & month <= end)
+    filter(month >= dateRange$start & month <= dateRange$end)
 
   return(contributorsByMonthYear)
 }
 
-## HELPER FUNCTIONS FOR COMMIT METRICS ------------------------------------------------------
+## HELPER FUNCTIONS FOR COMMIT METRICS ---------------------------------------------------
 #' Lists commits for a specified repository over a date range.
 #' @param owner The GitHub repository owner.
 #' @param repo The GitHub repository name.
@@ -206,36 +187,54 @@ calcCommitNum  <- function(commitObjList) {
 
 ## HELPER FUNCTIONS FOR CONTRIBUTOR PULL -------------------------------------------------
 
-#' Gets oldest commit date and handle for provided contributor path for a Jekyll/Github Pages repository. Used to pull data into the DATA.R script.
-#' @param contributorPath A path to a contributor file or directory containing contributor files.
+#' Pulls contributor paths from a static Jekyll blog hosted on GitHub pages.
 #' @param owner The owner of the repository to pull file paths from.
 #' @param repo The name of the repository to pull file paths from.
+#' @param onlyNew If TRUE, only returns new, uncached contributors. If FALSE, returns all contributors.
 #'
 #' @export
+
+getContributorPathsJekyll <- function(owner,
+                                      repo,
+                                      onlyNew = c(TRUE, FALSE)) {
+  # pull current contributor filepaths
+  contributorPaths <- getDirContents(owner = owner,
+                                     repo = repo,
+                                     dir = "_contributors",
+                                     fullPath = TRUE)
+  # check that cache exists
+  cacheExist <- file.exists(here::here("./R/sysdata.rda"))
+  # if cache exists, load and setdiff with knownContributors
+  # only pull info for new contributors and merge with known.
+  if (onlyNew & cacheExist) {
+    message("loading cached data")
+    load(here::here("./R/sysdata.rda"))
+    message(paste0("data last cached on ", cacheDate))
+    newContributorPaths <- setdiff(contributorPaths, knownContributorData$path)
+    return(newContributorPaths)
+  } else if (!onlyNew & cacheExist) {
+    return(contributorPaths)
+  } else if (!cacheExist) {
+    warning("cache does not exist. Loading all contributors.")
+    return(contributorPaths)
+  }
+}
+
+#' Gets oldest commit date and handle for provided contributor paths for a Jekyll/Github Pages repository.
+#' @param owner The owner of the repository to pull file paths from.
+#' @param repo The name of the repository to pull file paths from.
+#' @param onlyNew If TRUE, only returns new, uncached contributors. If FALSE, returns all contributors.
 #'
+#' @return A tibble with three columns: `path` contains the relative path to the contributor .md file, `commitDate` contains the earliest commit date for each contributor file, and `handle` has the contributors handle (the filename without .md on the end)
+#' @export
 
-getContributorData <- function(contributorPath,
-                               owner = "FredHutch",
-                               repo = "coop") {
-  # check that contributorPath is not empty
-  if(length(contributorPath) == 0) {
-    stop("no contributor paths provided")
-  }
-  # check if a dir or direct file path
-  mdPresent <- any(grepl(".md", contributorPath))
-  allMd <- all(mdPresent)
-  # if mdpresent is true and all md is true you have direct file paths to contributor mds
-  if (mdPresent & allMd) {
-    paths <- contributorPath
-  } else if (!mdPresent & !allMd) {
-    paths <- getDirContents(owner = owner,
-                            repo = repo,
-                            dir = contributorPath,
-                            fullPath = TRUE)
-  } else {
-    stop("contributor paths provided need to all end in md or be a directory")
-  }
-
+getContributorDataJekyll <- function(owner,
+                                     repo,
+                                     onlyNew = TRUE) {
+  # pull contributor paths from the repo
+  paths <- getContributorPathsJekyll(owner = owner,
+                                     repo = repo,
+                                     onlyNew = onlyNew)
   # pull earlist commit date for unknown paths
   contributorDates <- paths %>%
     map_dbl(~ filepathToOldestCommitDate(owner = owner,
@@ -248,31 +247,50 @@ getContributorData <- function(contributorPath,
   return(contributorData)
 }
 
+#' Gets oldest commit date and handle for provided contributor paths for a Jekyll/Github Pages repository.
+#' @param contributorData takes the output of `getContributorDataJekyll()`. See docs for description of output.
+
+aggregateContributorData <- function(contributorData) {
+  contributorDataAgg <- contributorData %>%
+    mutate(month = floor_date(commitDate, unit = "month")) %>%
+    group_by(month) %>%
+    summarise(numNewContributors = n(),
+              handles = paste0(handle, collapse = ", ")) %>%
+    mutate(totalContributors = cumsum(numNewContributors)) %>%
+    select(month, totalContributors, numNewContributors, handles)
+  # fill in missing months
+  contributorTbl <- completeMonths(contributorDataAgg, "month")
+  return(contributorTbl)
+}
+
 ## HELPER FUNCTIONS FOR POSTS ------------------------------------------------------------
 #' Calculate the number of posts per month in a Jekyll GitHub pages repository.
 #'
-#' @param postDirContents
+#' @param posts a vector of post file names.
+#' @param dateRange A vector of two dates in yyyy-mm-dd format. Can be strings or date objects. Order doesn't matter, the max and min will be used.
 #'
 #' @return a dataframe of number of posts per month
 
 calcPostNumJekyll <- function(posts,
                               dateRange) {
+  dateRange <- dateRangeToStartEnd(dateRange)
   # get filenames from "_posts" directory
   # use dates in filenames to parse by dateRange
   postTbl <- as_date(str_sub(posts, start = 1, end = 10)) %>%
-    tibble(post = postDirContents, date = .) %>%
+    tibble(post = posts, date = .) %>%
     mutate(month = floor_date(date, unit = "month"))%>%
     group_by(month) %>%
     summarise(numNewPosts = n()) %>%
     mutate_at("numNewPosts", ~replace(., is.na(.), 0)) %>%
     mutate(numPostTotal = cumsum(numNewPosts))%>%
-    filter(month >= min(dateRange) & month <= max(dateRange))
+    filter(month >= dateRange$start & month <= dateRange$end)
 
   return(postTbl)
 }
 
 
-## GENERIC HELPER FUNCTIONS ------------------------------------------------------
+
+## OTHER HELPER FUNCTIONS ----------------------------------------------------------------
 
 #' Get the names of files in a specified directory in a github repo
 #'
@@ -312,7 +330,6 @@ pathToContributor <- function(contributorPaths) {
   return(id)
 }
 
-
 #' This function pulls the the oldest commit date for the specified filepath. This can be used to determine when a file was first pushed to the repository.
 #'
 #' @param owner the GitHub repository owner
@@ -340,8 +357,40 @@ filepathToOldestCommitDate <- function(owner,
     stop("path returns no commits")
   }
   commitNum <- length(commitObj)
+  # most recent commit is always the first row. Oldest commit is last.
   oldestCommitDate <- as_date(commitObj[[max(commitNum)]]$commit$author$date)
   return(oldestCommitDate)
+}
+
+#' Fill in missing months in a vector or dataframe column. If a dataframe is supplied the extra columns will be filled in with NA. Dates should be a date object.
+#' @param data A vector or dataframe of dates in yyyy-mm-dd format. Filled in dates will be for the first of the month.
+#' @param dateCol if a dataframe is supplied, what is the column name of the dates variable. Defaults to "month".
+
+completeMonths <- function(data,
+                           dateCol = NULL) {
+  # check if data is a dataframe
+  isDf <- is.data.frame(data)
+  if (isDf) {
+    dates <- data[[dateCol]]
+  } else {
+    dates <- data
+  }
+  # check that we're working with dates
+  if (!is.Date(dates)) {
+    stop("Provided vector or column is not in date format")
+  }
+  # if it's a dataframe return the specified date column
+  # if it's a vector return
+  completeRange <-  tibble(month = seq.Date(from = min(dates),
+                                            to = max(dates),
+                                            by = "month"))
+  if (isDf) {
+    res <- full_join(data, completeRange, by = "month")
+    res <- res[order(res$month),]
+  } else {
+    res <- completeRange[["month"]]
+  }
+  return(res)
 }
 
 ## Date handling
