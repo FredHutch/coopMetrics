@@ -46,6 +46,8 @@ githubMetrics <- function(owner,
 #' @param owner The GitHub repository owner
 #' @param repo The GitHub repository name
 #' @param dateRange A vector of two dates in yyyy-mm-dd format. Can be strings or date objects. Order doesn't matter, the max and min will be used.
+#'
+#' @export
 
 commitMetrics <- function(owner,
                           repo,
@@ -69,6 +71,8 @@ commitMetrics <- function(owner,
 #' @param owner The GitHub repository owner
 #' @param repo The GitHub repository name
 #' @param dateRange A vector of two dates in yyyy-mm-dd format. Can be strings or date objects. Order doesn't matter, the max and min will be used.
+#'
+#' @export
 
 postMetrics <- function(owner,
                         repo,
@@ -108,8 +112,10 @@ contributorMetrics <- function(owner,
   contributorData <- getContributorDataJekyll(owner = owner,
                                               repo = repo,
                                               onlyNew = useCache)
-  # if useCache is TRUE check that cache exists
-  if (!file.exists(here::here("R/sysdata.rda"))) {
+  # check cacheExists
+  cacheExists <- file.exists(here::here("R/sysdata.rda"))
+  # if useCache is TRUE and cacheExists is FALSE stop script. Recommend createCache
+  if (useCache == TRUE && cacheExists == FALSE) {
     stop("useCache = TRUE but no cache is found. Use createCache() to create store your data locally.")
   }
   # if useCache is TRUE
