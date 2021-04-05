@@ -12,14 +12,12 @@ getBlogStatistics <- function(webPropertyName,
                               owner,
                               repo,
                               dateRange) {
-  #check date
-  if (is.Date(dateRange) == FALSE) {
+  #validate daterange
+  checkDateFormat(dateRange)
+  isDate <- all(sapply(dateRange, is.Date))
+  if (!isDate) {
     dateRange <- ymd(dateRange)
-  }
-
-  end <- ceiling_date(max(dateRange), unit = "month") - 1
-  start <- floor_date(min(dateRange), unit = "month")
-
+    }
   dateRange <- c(start, end)
   # pull google analytics data
   gaData <- pullGoogleAnalytics(webPropertyName = webPropertyName,
@@ -28,8 +26,10 @@ getBlogStatistics <- function(webPropertyName,
   ghData <- pullGithub(owner = owner,
                        repo = repo,
                        dateRange = dateRange)
+  #rename cols
   names(ghData)[-1] <- paste0("gh_", names(ghData)[-1])
   names(gaData)[-1] <- paste0("ga_", names(gaData)[-1])
+  #merge
   data <- left_join(ghData, gaData, by = "month")
   return(data)
 }
