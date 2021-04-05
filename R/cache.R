@@ -31,24 +31,35 @@ createContributorCache <- function(owner,
                                    repo,
                                    dateRange,
                                    overwrite) {
+
+  # dateRange validation
+  # check is ymd
+  checkDateFormat(dateRange)
+  #check is date
+  if (is.Date(dateRange) == FALSE) {
+    dateRange <- ymd(dateRange)
+  }
+  dateRangeObj <- dateRangeToStartEnd(dateRange)
   # check that cache exists
   cacheExist <- checkCacheExists()
   # if cache exits, handle overwrite instructions
   if (cacheExist) {
     if (missing(overwrite)) {
-      stop("No option is set for overwrite. Please indicate TRUE/FALSE for overwrite.")
-    } else if (overwrite) {
+      stop("No option is set for overwrite and a data cache exists. Please indicate TRUE/FALSE for overwrite.")
+    } else if (overwrite & cacheExist) {
       message("Overwrite is set to TRUE. Removing stored data cache")
       file.remove(here::here("R/sysdata.rda"))
-    } else { # overwrite = FALSE, stop function, recommend updateCache
+    } else if (!overwrite & cacheExist) { # overwrite = FALSE, stop function, recommend updateCache
       stop("Overwrite is set to FALSE. To update data cache use `updateCache()`")
     }
+  } else {
+    message("no cache found. Overwrite argument is overridden.")
   }
   # create contributor cached data
-  contributorDataCache <- suppressWarnings(suppressMessages(contributorMetrics(owner,
-                                                                               repo,
-                                                                               dateRange,
-                                                                               useCache = FALSE)))
+  contributorDataCache <- suppressWarnings(suppressMessages(getContributorDataJekyll(owner,
+                                                                                     repo,
+                                                                                     onlyUncached = FALSE))) %>%
+    filter(commitDate >= dateRangeObj$start, commitDate <= dateRangeObj$end)
   return(contributorDataCache)
 }
 
