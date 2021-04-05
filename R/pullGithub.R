@@ -15,13 +15,6 @@ githubMetrics <- function(owner,
                           repo,
                           dateRange,
                           useCache) {
-  # validate dateRange format is ymd
-  checkDateFormat(dateRange)
-  # validate that dateRange are date objects, if not make them
-  isDate <- all(sapply(dateRange, is.Date))
-  if (!isDate) {
-    dateRange <- ymd(dateRange)
-  }
   # get metrics
   contributor <- contributorMetrics(owner = owner,
                                     repo = repo,
@@ -89,7 +82,7 @@ postMetrics <- function(owner,
 
   return(postTbl)
 }
-## CONTRIBUTORS --------------------------------------------------------------------------
+## CONTRIBUTORS ---------------------------------------------------------------------------
 
 #' This function calculates the number of new contributors and total contributors by month
 #'
