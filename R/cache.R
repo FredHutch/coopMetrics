@@ -15,7 +15,6 @@ createCache <- function(owner,
   # get contributor data for cache
   contributorDataCache <- createContributorCache(owner, repo, dateRange, overwrite)
   # write cache
-  message("Writing data cache to R/sysdata.rda")
   usethis::use_data(contributorDataCache, cacheDate, internal = TRUE, overwrite = overwrite)
 }
 
@@ -53,12 +52,12 @@ createContributorCache <- function(owner,
       stop("Overwrite is set to FALSE. To update data cache use `updateCache()`")
     }
   } else {
-    message("no cache found. Overwrite argument is overridden.")
+    message("Overwrite argument is overridden.")
   }
   # create contributor cached data
   contributorDataCache <- suppressWarnings(suppressMessages(getContributorDataJekyll(owner,
                                                                                      repo,
-                                                                                     onlyUncached = FALSE))) %>%
+                                                                                     useCache = FALSE))) %>%
     filter(commitDate >= dateRangeObj$start, commitDate <= dateRangeObj$end)
   return(contributorDataCache)
 }

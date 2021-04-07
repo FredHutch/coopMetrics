@@ -98,13 +98,13 @@ postMetrics <- function(owner,
 contributorMetrics <- function(owner,
                                repo,
                                dateRange,
-                               useCache = TRUE) {
-  dateRange <- dateRangeToStartEnd(dateRange)
+                               useCache = FALSE) {
+  dateRangeObj <- dateRangeToStartEnd(dateRange)
   # if useCache is TRUE, only pull new contributors, will merge with cached
   # if useCache is FALSE, pull all contributor data
   contributorData <- getContributorDataJekyll(owner = owner,
                                               repo = repo,
-                                              onlyNew = useCache)
+                                              useCache = useCache)
   # check cacheExists
   cacheExists <- file.exists(here::here("R/sysdata.rda"))
   # if useCache is TRUE and cacheExists is FALSE stop script. Recommend createCache
@@ -114,9 +114,9 @@ contributorMetrics <- function(owner,
   # if useCache is TRUE
   # load cache
   # merge with the contributor data of new contributors
-  if (useCache) {
+  if (useCache & cacheExists) {
     load("R/sysdata.rda")
-    contributorData <- suppressMessages(full_join(knownContributorData, contributorData))
+    contributorData <- suppressMessages(full_join(contributorDataCache, contributorData))
   }
 
   contributorsByMonthYear <-  contributorData %>%
@@ -125,7 +125,7 @@ contributorMetrics <- function(owner,
     completeMonths(dateCol = "month") %>%
     mutate_at("numNewContributors", ~replace(., is.na(.), 0)) %>%
     mutate(totalContributors = cumsum(numNewContributors)) %>%
-    filter(month >= dateRange$start & month <= dateRange$end)
+    filter(month >= dateRangeObj$start & month <= dateRangeObj$end)
 
   return(contributorsByMonthYear)
 }
@@ -189,13 +189,13 @@ calcCommitNum  <- function(commitObjList) {
 #' Pulls contributor paths from a static Jekyll blog hosted on GitHub pages.
 #' @param owner The owner of the repository to pull file paths from.
 #' @param repo The name of the repository to pull file paths from.
-#' @param onlyNew If TRUE, only returns new, uncached contributors. If FALSE, returns all contributors.
+#' @param useCache If TRUE, only returns new, uncached contributors. If FALSE, returns all contributors.
 #'
 #' @export
 
 getContributorPathsJekyll <- function(owner,
                                       repo,
-                                      onlyNew = c(TRUE, FALSE)) {
+                                      onlyUncached) {
   # pull current contributor filepaths
   contributorPaths <- getDirContents(owner = owner,
                                      repo = repo,
@@ -205,44 +205,57 @@ getContributorPathsJekyll <- function(owner,
   cacheExist <- file.exists(here::here("./R/sysdata.rda"))
   # if cache exists, load and setdiff with knownContributors
   # only pull info for new contributors and merge with known.
-  if (onlyNew & cacheExist) {
+  if (onlyUncached & cacheExist) {
     message("loading cached data")
     load(here::here("./R/sysdata.rda"))
     message(paste0("data last cached on ", cacheDate))
-    newContributorPaths <- setdiff(contributorPaths, knownContributorData$path)
-    return(newContributorPaths)
-  } else if (!onlyNew & cacheExist) {
-    return(contributorPaths)
-  } else if (!cacheExist) {
-    warning("cache does not exist. Loading all contributors.")
-    return(contributorPaths)
+    contributorPaths <- setdiff(contributorPaths, contributorDataCache$path)
+  } else if (!onlyUncached) {
+    message("Loading all contributors.")
+  } else if (!cacheExist & onlyUncached) {
+    message("onlyUncached = TRUE but no cache found. Loading all contributors.")
   }
+  return(contributorPaths)
 }
 
 #' Gets oldest commit date and handle for provided contributor paths for a Jekyll/Github Pages repository.
 #' @param owner The owner of the repository to pull file paths from.
 #' @param repo The name of the repository to pull file paths from.
-#' @param onlyNew If TRUE, only returns new, uncached contributors. If FALSE, returns all contributors.
+#' @param useCache If TRUE, only returns new, uncached contributors. If FALSE, returns all contributors.
 #'
 #' @return A tibble with three columns: `path` contains the relative path to the contributor .md file, `commitDate` contains the earliest commit date for each contributor file, and `handle` has the contributors handle (the filename without .md on the end)
 #' @export
 
 getContributorDataJekyll <- function(owner,
                                      repo,
-                                     onlyNew = TRUE) {
-  # pull contributor paths from the repo
-  paths <- getContributorPathsJekyll(owner = owner,
-                                     repo = repo,
-                                     onlyNew = onlyNew)
-  # pull earlist commit date for unknown paths
-  contributorDates <- paths %>%
-    map_dbl(~ filepathToOldestCommitDate(owner = owner,
-                                         repo = repo,
-                                         filepath = .x)) %>%
-    as_date()
-  contributorData <- tibble(path = paths,
-                            commitDate = contributorDates,
-                            handle = pathToContributor(paths))
+                                     useCache) {
+  # pull all contributor paths from the repo
+  paths <- getDirContents(owner = owner,
+                          repo = repo,
+                          dir = "_contributors",
+                          fullPath = TRUE)
+  # if cache exists and useCache = TRUE, load cache and subset paths so only uncached
+  # contributors are pulled
+  cacheExist <- file.exists(here::here("./R/sysdata.rda"))
+  if (cacheExist & useCache) {
+    message("loading cached data")
+    load(here::here("./R/sysdata.rda"))
+    message(paste0("data last cached on ", cacheDate))
+    paths <- setdiff(paths, contributorDataCache$path)
+  }
+  # if there are paths to pull commit date for, do that!
+  if (length(paths) > 0) {
+    contributorDates <- paths %>%
+      map_dbl(~ filepathToOldestCommitDate(owner = owner,
+                                           repo = repo,
+                                           filepath = .x)) %>%
+      as_date()
+    contributorData <- tibble(path = paths,
+                              commitDate = contributorDates,
+                              handle = pathToContributor(paths))
+  } else {
+    contributorData <- NULL
+  }
   return(contributorData)
 }
 
