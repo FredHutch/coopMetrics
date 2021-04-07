@@ -18,7 +18,6 @@ getBlogStatistics <- function(webPropertyName,
   if (!isDate) {
     dateRange <- ymd(dateRange)
     }
-  dateRange <- c(start, end)
   # pull google analytics data
   gaData <- pullGoogleAnalytics(webPropertyName = webPropertyName,
                                 dateRange = dateRange)

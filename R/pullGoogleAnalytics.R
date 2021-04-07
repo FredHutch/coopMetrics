@@ -10,10 +10,9 @@
 #'
 #' @export
 #' @import lubridate
-pullGoogleAnalytics <- function(webPropertyName,
-                                dateRange,
-                                gaAcctEmail) {
-  ga_auth(email = gaAcctEmail)
+googleAnalyticsMetrics <- function(webPropertyName,
+                                dateRange) {
+  ga_auth()
   # Get viewId
   viewId <- webPropertyNameToViewId(webPropertyName = webPropertyName)
 
