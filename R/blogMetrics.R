@@ -11,33 +11,34 @@
 getBlogStatistics <- function(webPropertyName,
                               owner,
                               repo,
-                              dateRange) {
-  #check date
-  if (is.Date(dateRange) == FALSE) {
+                              dateRange,
+                              useCache) {
+  #validate daterange
+  checkDateFormat(dateRange)
+  isDate <- all(sapply(dateRange, is.Date))
+  if (!isDate) {
     dateRange <- ymd(dateRange)
-  }
-
-  end <- ceiling_date(max(dateRange), unit = "month") - 1
-  start <- floor_date(min(dateRange), unit = "month")
-
-  dateRange <- c(start, end)
+    }
   # pull google analytics data
-  gaData <- pullGoogleAnalytics(webPropertyName = webPropertyName,
-                                dateRange = dateRange)
+  gaData <- googleAnalyticsMetrics(webPropertyName = webPropertyName,
+                                   dateRange = dateRange)
   # pull github data
-  ghData <- pullGithub(owner = owner,
-                       repo = repo,
-                       dateRange = dateRange)
+  ghData <- githubMetrics(owner = owner,
+                          repo = repo,
+                          dateRange = dateRange,
+                          useCache = useCache)
+  #rename cols
   names(ghData)[-1] <- paste0("gh_", names(ghData)[-1])
   names(gaData)[-1] <- paste0("ga_", names(gaData)[-1])
+  #merge
   data <- left_join(ghData, gaData, by = "month")
   return(data)
 }
 
-loadReportData <- function(dateRange) {
-  load("R/sysdata.rda")
-  m <- paste0("data last cached on ", as_date(cacheDate))
-  message(m)
-  list(blogMetrics, updated)
-
-}
+# loadReportData <- function(dateRange) {
+#   load("R/sysdata.rda")
+#   m <- paste0("data last cached on ", as_date(cacheDate))
+#   message(m)
+#   list(blogMetrics, updated)
+#
+# }
