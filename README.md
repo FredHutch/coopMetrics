@@ -11,20 +11,25 @@ devtools::install_github(repo = "FredHutch/coopMetrics",
 
 ## Usage
 
-This package works by pulling data from GitHub and Google Analytics. 
+This package works by pulling data from GitHub and Google Analytics. This package is a work in progress! The goal is to build out functions that make it easier to pull data on blogs hosted with GitHub and tracked with Google Analytics.
 
-### To refresh the available dataset:
-- update variables in `data-raw/DATA.R` if needed
-  - you can change what repo is being used, timeframe pulled, etc
-- run script
+### Pulling data
 
-Data is pulled from GitHub and GoogleAnalytics using the `gh` and `googleAnalyticsR` packages. The data object is saved to `R/sysdata.Rda`. This internal data object is then used to generate the figures in `monthly_report.md`. 
+Use the function `getBlogStatistics()` to pull data from both Google Analytics and GitHub. User must specify the owner and repo for GitHub, web property name for GoogleAnalytics, the desired dateRange, and whether or not they would like to use cached data to speed up the function.
 
-Two data objects are saved as `sysdata.Rda`: `blogMetrics` and `knownContributorData`.
+Here's an example where I pull data from the [FredHutch/coop](https://github.com/FredHutch/coop) repository.
 
-**`blogMetrics`**
+```
+getBlogStatistics(owner = "FredHutch",
+                  repo = "coop",
+                  webPropertyName = "Coop",
+                  dateRange = c("2020-01-01", "2020-06-30"),
+                  useCache = FALSE)
+```
 
-This object is a dataframe capturing the following metrics from GitHub and Google Analytics.
+### Metrics
+
+The following metrics are captured:
 
 From Github:
 - `gh_numCommits`: Number of commits
@@ -43,13 +48,24 @@ From Google Analytics:
 
 Columns with the prefix `gh` are pulled from GitHub and columns with the prefix `ga` are pulled from Google Analytics.
 
-**`knownContributorData`**
+### Caching
 
-This object is a dataframe capturing the following metrics from `_contributor` files.
+The user can create a data cache to speed up the data pull using the function `createCache()`. This function saves the data internally to the package as `R/sysdata.rda`. Currently the only data that is cached is the contributor data.
 
-- Contributor filename
-- Contributor handle (this is the filename with the path and `.md` removed)
-- Date of first commit
+Example usage:
+
+```
+createCache(owner = "FredHutch",
+            repo = "coop",
+            dateRange = c("2019-01-01", "2021-03-31"),
+            overwrite = TRUE)
+```
+
+### A note on `dateRange`
+
+- DateRange _must_ be a vector of dates in year-month-day format.
+- Order does not matter
+- Dates can be a date object or character
 
 ## More info:
 
