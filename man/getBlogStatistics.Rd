@@ -4,7 +4,7 @@
 \alias{getBlogStatistics}
 \title{Pulls blog statistics for blogs using the GitHub Pages directory structure from both GitHub and Google Analytics.}
 \usage{
-getBlogStatistics(webPropertyName, owner, repo, dateRange)
+getBlogStatistics(webPropertyName, owner, repo, dateRange, useCache)
 }
 \arguments{
 \item{webPropertyName}{A variable from GoogleAnalytics. You can find out the webproperty name using `ga_account_list()` form the `GoogleAnalyticsR` package.}
